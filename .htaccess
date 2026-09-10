@@ -1,0 +1,15 @@
+# CI_ENV tidak dipaksa lagi -> index.php mendeteksi otomatis:
+#   host localhost/127.0.0.1/192.168.* -> development (error tampil)
+#   host lain (produksi)              -> production  (error disembunyikan)
+# Untuk memaksa manual, hidupkan salah satu baris berikut:
+# SetEnv CI_ENV development
+# SetEnv CI_ENV production
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L]
+
+# Handler LiteSpeed khusus hosting produksi — dinonaktifkan untuk Apache/XAMPP lokal.
+# <FilesMatch "\.(php4|php5|php3|php2|php|phtml)$">
+# SetHandler application/x-lsphp73
+# </FilesMatch>

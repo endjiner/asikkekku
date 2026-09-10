@@ -1,0 +1,282 @@
+/* =====================================================================
+   Modul Dokumen (form_inapp) — isian split + pratinjau format kertas.
+   Dimuat khusus di halaman dokumen/form & dokumen/cetak (bukan global).
+   ===================================================================== */
+
+/* ---- Melebarkan kontainer halaman form dokumen di laptop & monitor luas ---- */
+.app-topnav .content.dok-content-wide,
+.app-topnav .content:has(.dok-split),
+.dok-page-wide .content,
+.dok-page-wide .content-header .container-fluid {
+  max-width: 96% !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+@media (min-width: 1600px) {
+  .app-topnav .content.dok-content-wide,
+  .app-topnav .content:has(.dok-split),
+  .dok-page-wide .content,
+  .dok-page-wide .content-header .container-fluid {
+    max-width: 1740px !important;
+  }
+}
+
+/* ---- Layout split isian | pratinjau ---- */
+.dok-split {
+  display: grid;
+  grid-template-columns: minmax(520px, 48%) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1399.98px) {
+  .dok-split {
+    grid-template-columns: minmax(460px, 50%) 1fr;
+    gap: 16px;
+  }
+}
+@media (max-width: 1199.98px) {
+  .dok-split {
+    grid-template-columns: minmax(400px, 50%) 1fr;
+    gap: 14px;
+  }
+}
+@media (max-width: 991.98px) {
+  .dok-split {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+.dok-split > .card { margin-bottom: 0; }
+.dok-fields .card-body { max-height: calc(100vh - 180px); overflow-y: auto; overflow-x: hidden; }
+.dok-preview .card-body { background: #e9ecef; max-height: calc(100vh - 180px); overflow: auto; }
+
+.dok-auto{
+  font-size:.68rem; font-weight:600; color:#8f5e12; background:#f5ecdb;
+  border-radius:999px; padding:1px 7px; margin-left:4px; vertical-align:middle;
+}
+.dok-rows .rows-tbl th{ font-size:.7rem; padding:4px 6px; white-space:nowrap; }
+.dok-rows .rows-tbl td{ padding:3px 4px; }
+.dok-rows .rows-tbl input{ min-width:80px; font-size:.78rem; }
+.btn-xs{ padding:2px 8px; font-size:.72rem; line-height:1.4; }
+
+/* ---- Lembar dokumen A4 (pratinjau + cetak) ----
+   Ukuran kertas A4 = 210 x 297 mm. Margin isi 15mm/18mm. Font & layout HARUS
+   sama dengan dokumen kantor di foto (kapitalisasi persis). */
+.doc-sheet-wrap{ display:flex; justify-content:center; }
+.doc-sheet{
+  background:#fff; box-sizing:border-box;
+  width:210mm; min-height:297mm; padding:15mm 18mm; margin:0 auto;
+  font-family:"Times New Roman",Georgia,serif; font-size:12pt; line-height:1.4; color:#000;
+  box-shadow:0 1px 10px rgba(0,0,0,.18);
+}
+/* Panel pratinjau lebih sempit dari A4 -> perkecil proporsional supaya utuh terlihat. */
+.dok-preview .card-body{ overflow:auto; }
+.dok-preview .doc-sheet{ transform-origin:top center; }
+.paper .doc-sheet, .a4 .doc-sheet{ box-shadow:none; padding:0; margin:0; width:100%; min-height:0; }
+
+.doc-sheet .ds-kop{ text-align:center; margin-bottom:14px; }
+.doc-sheet .ds-kop-t1{ font-weight:bold; font-size:13.5px; letter-spacing:.02em; }
+.doc-sheet .ds-kop-t2{ font-weight:bold; font-size:12.5px; }
+.doc-sheet .ds-kop-line{ border-bottom:2px solid #111; margin-top:6px; }
+
+.doc-sheet .ds-title{ text-align:center; font-size:15px; font-weight:bold; text-decoration:underline; margin:14px 0; letter-spacing:.06em; }
+.doc-sheet .ds-subttl{ font-weight:bold; margin:14px 0 4px; text-transform:uppercase; font-size:12px; letter-spacing:.04em; }
+
+.doc-sheet table{ border-collapse:collapse; width:100%; }
+.doc-sheet .ds-meta{ margin-bottom:8px; }
+.doc-sheet .ds-meta td{ padding:1px 6px 1px 0; white-space:nowrap; font-size:12px; }
+.doc-sheet .ds-meta .ds-r{ padding-left:18px; }
+
+.doc-sheet .ds-form td, .doc-sheet .ds-grid td{ padding:2px 4px; vertical-align:top; }
+.doc-sheet .ds-lbl, .doc-sheet .ds-k{ width:34%; }
+.doc-sheet .ds-grid .ds-no{ width:26px; }
+.doc-sheet .ds-grid .ds-k{ width:38%; }
+.doc-sheet .ds-grid-2 .ds-k{ width:18%; }
+.doc-sheet .ds-p{ margin:8px 0; text-align:justify; }
+.doc-sheet .ds-sm{ font-size:11.5px; }
+.doc-sheet .ds-ol{ margin:0; padding-left:18px; }
+
+.doc-sheet .ds-tbl{ margin:8px 0; }
+.doc-sheet .ds-tbl th, .doc-sheet .ds-tbl td{ border:1px solid #111; padding:4px 6px; font-size:11.5px; vertical-align:top; }
+.doc-sheet .ds-tbl th{ background:#eee; text-align:center; font-weight:bold; }
+.doc-sheet .ds-tbl-plain th, .doc-sheet .ds-tbl-plain td{ border:1px solid #999; }
+.doc-sheet .ds-c{ text-align:center; }
+.doc-sheet .ds-r{ text-align:right; }
+.doc-sheet .ds-num{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.doc-sheet .ds-muted{ color:#888; font-style:italic; }
+.doc-sheet .ds-total td{ font-weight:bold; background:#f4f4f4; }
+
+.doc-sheet .ds-terbilang{ margin:6px 0; font-style:italic; }
+.doc-sheet .ds-terbilang span{ font-weight:bold; font-style:normal; }
+
+.doc-sheet .ds-ttd{ margin-top:24px; }
+.doc-sheet .ds-ttd td{ width:50%; vertical-align:top; padding:0 10px; text-align:left; font-size:12px; }
+.doc-sheet .ds-ttd.ds-ttd-1 td{ width:60%; }
+.doc-sheet .ds-ttd .ds-sign{ height:56px; }
+.doc-sheet .ds-ttd .ds-name{ font-weight:bold; text-decoration:underline; }
+.doc-sheet .ds-ttd .ds-nip{ font-size:11.5px; }
+
+@media print{
+  .doc-sheet{ font-size:12pt; }
+  .doc-sheet .ds-tbl th{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+
+/* =====================================================================
+   Kwitansi perjalanan dinas (LS) — layout form kantor BBPOM Pangkal Pinang
+   ===================================================================== */
+.doc-sheet .kw{ font-size:12px; line-height:1.45; }
+.doc-sheet .kw table{ width:100%; border-collapse:collapse; }
+.doc-sheet .kw-head td{ vertical-align:top; }
+.doc-sheet .kw-kop{ font-size:12px; }
+.doc-sheet .kw-kop strong{ font-size:12.5px; }
+.doc-sheet .kw-nob{ width:280px; }
+.doc-sheet .kw-nob table td{ padding:0 2px; white-space:nowrap; font-size:11.5px; }
+.doc-sheet .kw-nob table td:first-child{ width:78px; }
+
+.doc-sheet .kw-title{ text-align:center; font-weight:bold; font-size:14px; letter-spacing:.15em; margin:10px 0 12px; }
+
+.doc-sheet .kw-form td{ padding:1px 4px 1px 0; vertical-align:top; }
+.doc-sheet .kw-form .kw-l{ width:auto; white-space:nowrap; }
+.doc-sheet .kw-form2 .kw-l{ width:190px; }
+.doc-sheet .kw-form .kw-s{ width:10px; }
+.doc-sheet .kw-sp{ margin:4px 0; }
+
+.doc-sheet .kw-terbilang{ margin:8px 0 4px; }
+.doc-sheet .kw-terbilang span{ display:inline-block; border:1px solid #111; padding:1px 40px 1px 10px; font-weight:bold; }
+.doc-sheet .kw-lunas{ font-weight:bold; margin:6px 0; }
+
+.doc-sheet .kw-ttd{ margin:2px 0 4px; }
+.doc-sheet .kw-ttd td{ width:50%; vertical-align:top; padding:1px 8px; }
+.doc-sheet .kw-ttd .kw-r{ text-align:right; }
+.doc-sheet .kw-ttd .ds-sign{ height:52px; position:relative; }
+.doc-sheet .kw-ttd .ds-name{ font-weight:bold; text-decoration:underline; }
+.doc-sheet .kw-ttd .ds-nip{ font-size:11.5px; }
+.doc-sheet .kw-ttd2{ margin-top:10px; }
+
+.doc-sheet .kw-lampiran{ font-size:9.5px; line-height:1.3; margin:6px 0 10px; text-align:justify; }
+
+.doc-sheet .kw-subttl{ text-align:center; font-weight:bold; margin:8px 0 4px; letter-spacing:.06em; }
+.doc-sheet .kw-tbl th, .doc-sheet .kw-tbl td{ border:1px solid #111; padding:3px 6px; font-size:11.5px; vertical-align:top; }
+.doc-sheet .kw-tbl th{ text-align:center; font-weight:bold; }
+.doc-sheet .kw-tbl .kw-c{ text-align:center; }
+.doc-sheet .kw-tbl .kw-r{ text-align:right; }
+.doc-sheet .kw-tbl .kw-num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.doc-sheet .kw-tbl .kw-tarif{ float:right; white-space:nowrap; }
+.doc-sheet .kw-tbl .kw-muted{ color:#888; font-style:italic; }
+.doc-sheet .kw-tbl .kw-total td{ font-weight:bold; }
+
+.doc-sheet .kw-bayar{ margin:8px 0 2px; }
+.doc-sheet .kw-bayar td{ width:50%; padding:1px 8px; vertical-align:top; }
+.doc-sheet .kw-bayar .kw-r{ text-align:right; }
+
+.doc-sheet .kw-rampung{ font-weight:bold; margin:10px 0 2px; }
+.doc-sheet .kw-rampung-tbl td{ padding:1px 6px; vertical-align:top; }
+.doc-sheet .kw-rampung-tbl .kw-l{ width:56%; }
+.doc-sheet .kw-rampung-tbl .kw-r2{ width:70px; }
+
+@media print{
+  .doc-sheet .kw-terbilang span,
+  .doc-sheet .kw-tbl th, .doc-sheet .kw-tbl td{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+
+/* =====================================================================
+   CHECK LIST KELENGKAPAN DOKUMEN PENDUKUNG SPP — header oranye
+   ===================================================================== */
+.doc-sheet .cl{ font-size:11pt; }
+.doc-sheet .cl-title{ text-align:center; font-weight:bold; font-size:12pt; margin:0 0 12px; letter-spacing:.02em; }
+.doc-sheet .cl-tbl{ width:100%; border-collapse:collapse; margin:0 0 16px; }
+.doc-sheet .cl-tbl th, .doc-sheet .cl-tbl td{ border:1px solid #000; padding:4px 7px; font-size:10.5pt; vertical-align:middle; }
+.doc-sheet .cl-tbl .cl-head th{
+  background:#f5b942; color:#000; font-weight:bold; text-align:center;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+.doc-sheet .cl-tbl .cl-head th:nth-child(2){ text-align:left; }
+.doc-sheet .cl-tbl .cl-c{ text-align:center; }
+.doc-sheet .cl-catatan{ margin-top:6px; font-size:10.5pt; }
+@media print{
+  .doc-sheet .cl-tbl .cl-head th{ background:#f5b942 !important; }
+}
+
+/* =====================================================================
+   Nominatif / Daftar Riil / SPTJB / SPD — layout form kantor (foto 2026)
+   ===================================================================== */
+.doc-sheet .nm, .doc-sheet .rl, .doc-sheet .sp, .doc-sheet .spd{ font-size:11pt; line-height:1.4; }
+.doc-sheet .nm-kop, .doc-sheet .rl-kop{ text-align:center; margin-bottom:8px; }
+.doc-sheet .nm-kop strong, .doc-sheet .rl-kop strong{ font-size:11.5pt; }
+.doc-sheet .nm-kop-line, .doc-sheet .rl-kop-line{ border-bottom:2px solid #000; margin-top:4px; }
+.doc-sheet .nm-title, .doc-sheet .rl-title, .doc-sheet .sp-title{ text-align:center; font-weight:bold; font-size:12pt; margin:8px 0 4px; }
+.doc-sheet .nm-sub{ text-align:center; margin:0 0 8px; }
+.doc-sheet .sp-nomor{ text-align:center; margin:0 0 10px; }
+.doc-sheet .nm-p, .doc-sheet .rl-p, .doc-sheet .sp-p{ margin:6px 0; text-align:justify; }
+
+.doc-sheet .nm-tbl, .doc-sheet .rl-tbl, .doc-sheet .sp-tbl{ width:100%; border-collapse:collapse; margin:6px 0; }
+.doc-sheet .nm-tbl th, .doc-sheet .nm-tbl td,
+.doc-sheet .rl-tbl th, .doc-sheet .rl-tbl td,
+.doc-sheet .sp-tbl th, .doc-sheet .sp-tbl td{ border:1px solid #000; padding:3px 6px; font-size:10pt; vertical-align:top; }
+.doc-sheet .nm-tbl th, .doc-sheet .rl-tbl th, .doc-sheet .sp-tbl th{ text-align:center; font-weight:bold; }
+.doc-sheet .sp-tbl .sp-lbl{ font-weight:normal; font-size:8.5pt; }
+.doc-sheet .nm-c, .doc-sheet .rl-c, .doc-sheet .sp-c{ text-align:center; }
+.doc-sheet .nm-r, .doc-sheet .rl-r, .doc-sheet .sp-r{ text-align:right; }
+.doc-sheet .nm-num, .doc-sheet .rl-num, .doc-sheet .sp-num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.doc-sheet .nm-muted, .doc-sheet .rl-muted, .doc-sheet .sp-muted{ color:#888; font-style:italic; }
+.doc-sheet .nm-total td, .doc-sheet .rl-total td, .doc-sheet .sp-total td{ font-weight:bold; }
+
+.doc-sheet .rl-form td, .doc-sheet .sp-head td{ padding:1px 4px; vertical-align:top; }
+.doc-sheet .rl-form .rl-l{ width:70px; }
+.doc-sheet .sp-head .sp-n{ width:20px; text-align:center; }
+.doc-sheet .sp-head .sp-k{ width:170px; }
+.doc-sheet .rl-ol{ margin:4px 0; padding-left:20px; }
+
+.doc-sheet .nm-ttd, .doc-sheet .rl-ttd, .doc-sheet .sp-ttd, .doc-sheet .spd-ttd{ width:100%; margin-top:14px; }
+.doc-sheet .nm-ttd td, .doc-sheet .rl-ttd td, .doc-sheet .sp-ttd td, .doc-sheet .spd-ttd td{ width:50%; vertical-align:top; padding:1px 8px; }
+.doc-sheet .nm-ttd .nm-r, .doc-sheet .rl-ttd .rl-r, .doc-sheet .sp-ttd .sp-r, .doc-sheet .spd-ttd .spd-r{ text-align:right; }
+.doc-sheet .nm-ttd .ds-sign, .doc-sheet .rl-ttd .ds-sign,
+.doc-sheet .sp-ttd .ds-sign, .doc-sheet .spd-ttd .ds-sign{ height:52px; position:relative; }
+.doc-sheet .ds-name{ font-weight:bold; text-decoration:underline; }
+.doc-sheet .ds-nip{ font-size:10pt; }
+
+/* SPD */
+.doc-sheet .spd-top td{ vertical-align:top; }
+.doc-sheet .spd-kop{ font-size:10.5pt; }
+.doc-sheet .spd-meta{ width:230px; }
+.doc-sheet .spd-meta td{ padding:0 2px; font-size:10pt; white-space:nowrap; }
+.doc-sheet .spd-meta td:first-child{ width:62px; }
+.doc-sheet .spd-title{ text-align:center; font-weight:bold; font-size:12pt; text-decoration:underline; margin:8px 0; }
+.doc-sheet .spd-tbl{ width:100%; border-collapse:collapse; }
+.doc-sheet .spd-tbl td{ border:1px solid #000; padding:3px 6px; font-size:10pt; vertical-align:top; }
+.doc-sheet .spd-tbl .spd-n{ width:22px; text-align:center; }
+.doc-sheet .spd-tbl .spd-k{ width:220px; }
+.doc-sheet .spd-peng{ width:100%; border-collapse:collapse; }
+.doc-sheet .spd-peng th, .doc-sheet .spd-peng td{ border:1px solid #000; padding:1px 4px; font-size:9pt; }
+.doc-sheet .spd-peng .spd-c{ text-align:center; }
+.doc-sheet .spd-foot{ font-size:9pt; margin:4px 0; }
+.doc-sheet .spd-pb{ page-break-before:always; height:0; }
+.doc-sheet .spd-p2{ width:100%; border-collapse:collapse; margin-top:8px; }
+.doc-sheet .spd-p2 td{ border:1px solid #000; padding:5px 8px; font-size:9.5pt; vertical-align:top; }
+.doc-sheet .spd-p2-l{ width:62%; }
+.doc-sheet .spd-p2-r{ text-align:center; }
+.doc-sheet .spd-p2-box{ height:44px; }
+.doc-sheet .spd-p2-catatan{ border:1px solid #000; border-top:0; padding:5px 8px; font-size:9.5pt; min-height:40px; }
+.doc-sheet .spd-p2-perhatian{ margin-top:8px; font-size:8.5pt; text-align:justify; line-height:1.35; }
+.doc-sheet .spd-p2 .mt-1{ margin-top:3px; }
+
+/* =====================================================================
+   Tanda tangan tertempel + cap + watermark salinan-tanpa-ttd
+   ===================================================================== */
+.doc-sheet .ds-sign{ position:relative; }
+.doc-sheet .ds-sign-img{ max-height:52px; max-width:150px; display:block; }
+.doc-sheet .ds-cap-img{
+  position:absolute; left:-6px; top:-10px; width:96px; height:auto;
+  opacity:.92; pointer-events:none;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+.doc-sheet.doc-sheet-notte{ position:relative; }
+.doc-sheet .ds-watermark{
+  position:absolute; top:44%; left:0; right:0; text-align:center;
+  font-size:34pt; font-weight:bold; color:rgba(200,0,0,.14);
+  transform:rotate(-24deg); letter-spacing:.08em; pointer-events:none; z-index:5;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+@media print{
+  .doc-sheet .ds-cap-img, .doc-sheet .ds-watermark{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}

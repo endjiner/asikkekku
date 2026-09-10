@@ -1,0 +1,6 @@
+Ikon: "Solar Icon Set" — gaya Bold Duotone.
+Sumber : https://github.com/480-Design/Solar-Icons-Set  (via Iconify)
+Lisensi: CC BY 4.0  (https://creativecommons.org/licenses/by/4.0/)
+
+Semua ikon di-bundle lokal agar aplikasi tidak bergantung pada CDN pihak ketiga.
+Diambil dengan warna currentColor sehingga mengikuti warna brand navy #004282.
