@@ -20,8 +20,8 @@ $tgl    = $d['tanggal'] ? tgl_ind($d['tanggal']) : '&hellip;&hellip;&hellip;';
     <tr>
       <td class="kw-kop">
         <div>BADAN POM RI</div>
-        <div><strong>BALAI PENGAWAS OBAT DAN MAKANAN</strong></div>
-        <div>DI PANGKALPINANG</div>
+        <div><strong>BALAI BESAR PENGAWAS OBAT DAN MAKANAN</strong></div>
+        <div>DI PANGKAL PINANG</div>
       </td>
       <td class="kw-nob">
         <table>
@@ -40,7 +40,7 @@ $tgl    = $d['tanggal'] ? tgl_ind($d['tanggal']) : '&hellip;&hellip;&hellip;';
     <tr><td class="kw-l">Guna pembayaran ongkos/biaya perjalanan</td><td class="kw-s">:</td><td><?php echo nl2br(dok_e($d['guna'])) ?></td></tr>
   </table>
 
-  <p class="kw-sp">Surat Perintah dari Kepala Balai Pengawas Obat dan Makanan di Pangkalpinang</p>
+  <p class="kw-sp">Surat Perintah dari Kepala Balai Besar Pengawas Obat dan Makanan di Pangkal Pinang</p>
 
   <table class="kw-form kw-form2">
     <tr>

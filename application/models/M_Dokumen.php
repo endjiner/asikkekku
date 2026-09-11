@@ -37,14 +37,15 @@ class M_Dokumen extends CI_Model
 	/* ---- Konstanta kantor: default di sini, bisa ditimpa lewat tb_vrbl
 	   (baris VrblName = 'dok_satker_nama', 'dok_kppn', 'dok_dipa_no', dst). ---- */
 	private $konst_default = array(
-		'satker_nama'     => 'Balai POM di Pangkalpinang',
-		'satker_kode'     => '063.672842',
-		'kppn'            => 'KPPN Pangkal Pinang (015)',
-		'dipa_no'         => 'DIPA-063.01.2.672842/2026',
-		'dipa_tgl'        => '2025-12-01',
-		'tahun_anggaran'  => '2026',
-		'kota'            => 'Pangkalpinang',
-		'ppk_terima_dari' => 'Pejabat Pembuat Komitmen Balai POM di Pangkalpinang',
+		'satker_nama'       => 'Balai POM di Pangkal Pinang',
+		'satker_nama_resmi' => 'Balai Besar POM di Pangkal Pinang',
+		'satker_kode'       => '063.672842',
+		'kppn'              => 'KPPN Pangkal Pinang (015)',
+		'dipa_no'           => 'DIPA-063.01.2.672842/2026',
+		'dipa_tgl'          => '2025-12-01',
+		'tahun_anggaran'    => '2026',
+		'kota'              => 'Pangkal Pinang',
+		'ppk_terima_dari'   => 'Pejabat Pembuat Komitmen Balai Besar POM di Pangkal Pinang',
 		'bendahara_nama'  => 'Desy Anindyasari, A.Md.',
 		'bendahara_nip'   => '198512022008122002',
 	);
@@ -220,7 +221,7 @@ class M_Dokumen extends CI_Model
 				'fields'  => array(
 					array('key' => 'nomor', 'label' => 'Nomor', 'tipe' => 'text', 'sumber' => 'manual'),
 					array('key' => 'kode_satker', 'label' => 'Kode Satker/Program', 'tipe' => 'text', 'sumber' => 'const:satker_kode'),
-					array('key' => 'nama_satker', 'label' => 'Nama Satuan Kerja', 'tipe' => 'text', 'sumber' => 'const:satker_nama'),
+					array('key' => 'nama_satker', 'label' => 'Nama Satuan Kerja', 'tipe' => 'text', 'sumber' => 'const:satker_nama_resmi'),
 					array('key' => 'dipa_tgl_no', 'label' => 'Tanggal & No DIPA', 'tipe' => 'text', 'sumber' => 'auto:dipa_tgl_no'),
 					array('key' => 'klasifikasi_anggaran', 'label' => 'Klasifikasi Anggaran', 'tipe' => 'text', 'sumber' => 'manual'),
 					array('key' => 'baris', 'label' => 'Rincian', 'tipe' => 'rows', 'sumber' => 'manual', 'kolom' => array(
