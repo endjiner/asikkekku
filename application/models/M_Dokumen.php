@@ -19,6 +19,21 @@ class M_Dokumen extends CI_Model
 {
 	const TEMPLATE_VERSI = 'v1';
 
+	/**
+	 * Helper 'dokumen' (tgl_ind() dkk.) sebelumnya cuma dimuat oleh controller
+	 * Dokumen. kartuKendaliAutoFill() dipanggil juga dari M_Manajemen_approval
+	 * (tiap kirim/setujui/kembalikan pengajuan) yang TIDAK memuat helper itu,
+	 * jadi tgl_ind() di autofill() selalu "Call to undefined function" di sana
+	 * -- request-nya crash sebelum sempat echo JSON, klien lihat "Gagal
+	 * memproses persetujuan" padahal datanya sudah tersimpan. Muat sendiri di
+	 * sini supaya M_Dokumen tidak bergantung controller mana yang memanggilnya.
+	 */
+	public function __construct()
+	{
+		parent::__construct();
+		$this->load->helper('dokumen');
+	}
+
 	/* ---- Konstanta kantor: default di sini, bisa ditimpa lewat tb_vrbl
 	   (baris VrblName = 'dok_satker_nama', 'dok_kppn', 'dok_dipa_no', dst). ---- */
 	private $konst_default = array(
