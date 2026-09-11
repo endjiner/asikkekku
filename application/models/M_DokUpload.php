@@ -7,15 +7,18 @@ defined("BASEPATH") or exit("No direct script access allowed");
  *
  * Hak upload:
  *   lpd, sppd          -> PJ-Kegiatan
- *   spm, spp, lamp16   -> Operator SPP-SPM
- *   lain               -> keduanya
+ *   spm, spp, lamp16   -> SPM / SPP (dulu ditulis "Operator SPP-SPM", nama
+ *                          folder GDRIVE -- tidak pernah cocok dengan
+ *                          UserPosition asli 'SPM'/'SPP' di tb_users)
+ *   lain               -> semuanya
  */
 class M_DokUpload extends CI_Model
 {
     /** Tipe dokumen yang boleh di-upload oleh masing-masing peran. */
     const HAK_UPLOAD = array(
-        "PJ-Kegiatan"     => array("lpd", "sppd", "lain"),
-        "Operator SPP-SPM"=> array("spm", "spp", "lamp16", "lain"),
+        "PJ-Kegiatan" => array("lpd", "sppd", "lain"),
+        "SPM"         => array("spm", "spp", "lamp16", "lain"),
+        "SPP"         => array("spm", "spp", "lamp16", "lain"),
     );
 
     const TIPE_LABEL = array(
