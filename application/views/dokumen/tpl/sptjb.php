@@ -24,7 +24,7 @@ $n0 = function ($v) { return $v ? number_format((float) $v, 0, ',', '.') : '-'; 
   </table>
 
   <p class="sp-p">Yang bertanda tangan di bawah ini Kuasa Pengguna Anggaran Satuan Kerja Balai
-     POM di Pangkalpinang menyatakan bahwa saya bertanggung jawab secara formal dan
+     Besar POM di Pangkal Pinang menyatakan bahwa saya bertanggung jawab secara formal dan
      material dan kebenaran perhitungan pemungutan pajak atas segala pembayaran tagihan yang
      telah kami perintahkan dalam SPM ini dengan perincian sebagai berikut :</p>
 

@@ -91,7 +91,7 @@
     document.title = title_page + ' | ' + rangeLabel();
 
     var JUDUL_LAPORAN = 'LAPORAN PENGAJUAN KARTU KENDALI KUITANSI';
-    var INSTANSI = 'BALAI POM DI PANGKALPINANG';
+    var INSTANSI = 'BALAI BESAR POM DI PANGKAL PINANG';
     var cetakStamp = function () { return 'Dicetak: ' + cetakLabel(); };
     var exportTitle = function () { return JUDUL_LAPORAN + ' — Periode ' + rangeLabel(); };
 

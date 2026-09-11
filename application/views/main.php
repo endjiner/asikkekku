@@ -15,7 +15,7 @@
       <img src="<?= base_url($AppConfig['logo_small'] ?: 'assets/images/logo_baru.png') ?>" alt="Logo">
       <span class="app-brand-txt">
         <b><?php echo html_escape($AppConfig['app_title']) ?></b>
-        <small>BPOM di Pangkalpinang</small>
+        <small>BBPOM di Pangkal Pinang</small>
       </span>
     </a>
 
@@ -49,7 +49,7 @@
     ?>
 
     <footer class="app-foot">
-      <span>Hak Cipta &copy; <?php echo date('Y') ?> Balai POM di Pangkalpinang</span>
+      <span>Hak Cipta &copy; <?php echo date('Y') ?> Balai Besar POM di Pangkal Pinang</span>
       <span class="d-none d-sm-inline">Dimuat dalam <b>{elapsed_time}</b> detik</span>
     </footer>
   </main>

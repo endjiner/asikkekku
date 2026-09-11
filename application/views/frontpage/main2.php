@@ -45,7 +45,7 @@
         <div class="row align-items-center">
           <div class="col-lg-6 order-2 order-lg-1 hero-copy">
             <h1><?php echo htmlspecialchars($AppConfig['app_title']) ?></h1>
-            <p class="hero-sub"><?php echo $AppConfig['app_description'] ?><br>Balai POM di Pangkalpinang</p>
+            <p class="hero-sub"><?php echo $AppConfig['app_description'] ?><br>Balai Besar POM di Pangkal Pinang</p>
             <span class="hero-rule"></span>
             <p class="hero-tag">Solusi digital untuk memantau, mencari, dan mengelola kartu kuitansi dengan mudah, cepat, dan transparan.</p>
           </div>
@@ -135,8 +135,8 @@
 
   <footer class="public-footer">
     <div class="pub-container d-flex flex-wrap justify-content-between" style="gap:6px;">
-      <div>&copy; <?php echo date('Y') ?> <strong>Balai POM di Pangkalpinang</strong>. Seluruh hak cipta dilindungi.</div>
-      <div>Dikembangkan oleh <a href="https://pangkalpinang.pom.go.id" target="_blank" rel="noopener">Balai POM di Pangkalpinang</a></div>
+      <div>&copy; <?php echo date('Y') ?> <strong>Balai Besar POM di Pangkal Pinang</strong>. Seluruh hak cipta dilindungi.</div>
+      <div>Dikembangkan oleh <a href="https://pangkalpinang.pom.go.id" target="_blank" rel="noopener">Balai Besar POM di Pangkal Pinang</a></div>
     </div>
   </footer>
 
