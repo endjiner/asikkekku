@@ -23,6 +23,19 @@ class M_DataTable extends CI_Model
         parent::__construct();
     }
 
+    /**
+     * Kolom/alias SQL yang sah hanya huruf/angka/underscore, opsional
+     * diawali alias tabel + titik (mis. "k.KegiatanID"). protect_identifiers()
+     * CI3 cuma membungkus nilai dengan backtick TANPA meng-escape backtick
+     * yang sudah ada di dalamnya, jadi nama kolom harus divalidasi lebih
+     * dulu di sini -- kolom `columns[i][data]`/`order[i][column]` datang
+     * langsung dari POST DataTables (bisa direkayasa lewat request mentah).
+     */
+    private function _safeIdentifier($name)
+    {
+        return (bool) preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/', (string) $name);
+    }
+
     public function dtTableGetList($sql, $db = null, $addt_filter = array())
     {
         $DB = is_null($db) ? $this->db : $db;
@@ -51,6 +64,7 @@ class M_DataTable extends CI_Model
                 foreach ($dt_columns as $col) {
                     if (!isset($col['data']) || $col['data'] === '' || $col['data'] === null) continue;
                     if (isset($col['searchable']) && $col['searchable'] === 'false') continue;
+                    if (!$this->_safeIdentifier($col['data'])) continue;
                     $ors[] = $DB->protect_identifiers((string) $col['data']) . ' LIKE ?';
                     $bind[] = $like;
                 }
@@ -62,6 +76,7 @@ class M_DataTable extends CI_Model
             if (empty($f) || !is_array($f)) continue;
             $ands = array();
             foreach ($f as $k => $v) {
+                if (!$this->_safeIdentifier($k)) continue;
                 $ands[] = $DB->protect_identifiers((string) $k) . ' = ?';
                 $bind[] = $v;
             }
@@ -76,6 +91,7 @@ class M_DataTable extends CI_Model
             $ci = isset($o['column']) ? (int) $o['column'] : -1;
             if (!isset($dt_columns[$ci]['data']) || $dt_columns[$ci]['data'] === '') continue;
             if (isset($dt_columns[$ci]['orderable']) && $dt_columns[$ci]['orderable'] === 'false') continue;
+            if (!$this->_safeIdentifier($dt_columns[$ci]['data'])) continue;
             $dir = (isset($o['dir']) && strtolower($o['dir']) === 'desc') ? 'DESC' : 'ASC';
             $ord[] = $DB->protect_identifiers((string) $dt_columns[$ci]['data']) . ' ' . $dir;
         }
