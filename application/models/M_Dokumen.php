@@ -761,11 +761,23 @@ class M_Dokumen extends CI_Model
 
 		// Khusus lembar_periksa dan kartu_kendali
 		if ($kode === 'lembar_periksa' || $kode === 'kartu_kendali') {
+			// Kode => set(RangkapKey tersimpan), bukan sekadar Kode => true --
+			// dokumen per_penerima (SPD/Kwitansi/Riil) baru "ADA" kalau SEMUA
+			// pelaksana sudah mengisi bagiannya masing-masing, bukan cuma satu
+			// orang (kegiatan bisa >1 pelaksana dengan keperluan/nominal beda).
 			$savedDocs = array();
 			if ($this->ensureTable()) {
-				$q = $this->db->select('Kode')->where('KegiatanID', (int) $KegiatanID)->get('tb_dokumen')->result_array();
-				foreach ($q as $r) { $savedDocs[$r['Kode']] = true; }
+				$q = $this->db->select('Kode, RangkapKey')->where('KegiatanID', (int) $KegiatanID)->get('tb_dokumen')->result_array();
+				foreach ($q as $r) { $savedDocs[$r['Kode']][$r['RangkapKey']] = true; }
 			}
+			$pelaksanaNama = !empty($keg['_pelaksana']) ? $keg['_pelaksana'] : array();
+			$lengkapPerPenerima = function ($kd) use ($savedDocs, $pelaksanaNama) {
+				if (empty($pelaksanaNama)) return !empty($savedDocs[$kd]);
+				foreach ($pelaksanaNama as $nama) {
+					if (empty($savedDocs[$kd][$nama])) return false;
+				}
+				return true;
+			};
 			$uploadedTypes = array();
 			if ($this->db->table_exists('tb_dok_upload')) {
 				$q2 = $this->db->select('Tipe')->where('KegiatanID', (int) $KegiatanID)->get('tb_dok_upload')->result_array();
@@ -773,10 +785,10 @@ class M_Dokumen extends CI_Model
 			}
 			$hasST = !empty($keg['KegiatanNoSuratTugas']) || !empty($keg['KegiatanLampiran']) || isset($uploadedTypes['st']) || isset($uploadedTypes['surat_tugas']);
 			$hasLPD = isset($uploadedTypes['lpd']);
-			$hasSPD = isset($savedDocs['spd']);
-			$hasKwitansi = isset($savedDocs['kwitansi']);
-			$hasNominatif = isset($savedDocs['nominatif']);
-			$hasRiil = isset($savedDocs['riil']);
+			$hasSPD = $lengkapPerPenerima('spd');
+			$hasKwitansi = $lengkapPerPenerima('kwitansi');
+			$hasNominatif = !empty($savedDocs['nominatif']); // per_kegiatan: satu untuk semua, cukup satu baris
+			$hasRiil = $lengkapPerPenerima('riil');
 
 			$items = array('kelengkapan' => array(), 'verifikasi' => array());
 			// 13 item kelengkapan berkas:
@@ -852,7 +864,24 @@ class M_Dokumen extends CI_Model
 		if (!$this->ensureTable()) {
 			return array('ok' => false, 'msg' => 'Tabel tb_dokumen belum ada. Jalankan assets/sql/2026-09-04_dokumen.sql.');
 		}
-		$rangkapKey = $rangkapKey ?: '-';
+		$tpl = $this->template($kode);
+		if (!$tpl) {
+			return array('ok' => false, 'msg' => 'Jenis dokumen tidak dikenal.');
+		}
+		$perPenerima = (isset($tpl['rangkap']) && $tpl['rangkap'] === 'per_penerima');
+		if ($perPenerima) {
+			// Dokumen per orang: rangkap WAJIB nama pelaksana asli kegiatan ini,
+			// bukan '-' atau nama sembarang -- kalau tidak, datanya "nyasar" ke
+			// baris yang tidak muncul di form manapun (tidak kelihatan, tidak
+			// ikut terhitung lengkap/belum di checklist Kartu Kendali).
+			$rangkapKey = trim((string) $rangkapKey);
+			$pelaksana = $this->rangkapList($KegiatanID);
+			if ($rangkapKey === '' || $rangkapKey === '-' || !in_array($rangkapKey, $pelaksana, true)) {
+				return array('ok' => false, 'msg' => 'Pilih nama pelaksana (penerima) yang sah untuk dokumen ini.');
+			}
+		} else {
+			$rangkapKey = '-';
+		}
 		$row = array(
 			'KegiatanID'    => (int) $KegiatanID,
 			'Kode'          => $kode,
