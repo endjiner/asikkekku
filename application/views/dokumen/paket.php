@@ -28,6 +28,7 @@
             <tbody>
               <?php foreach ($dokumen as $d): ?>
                 <?php if ($d['metode'] === 'upload') continue; ?>
+                <?php if (isset($d['boleh_lihat']) && !$d['boleh_lihat']) continue; ?>
                 <?php foreach ($d['rangkap'] as $rk):
                   $val = $d['kode'] . ':' . $rk['key'];
                   $signed = isset($ttdmap[$d['kode']][$rk['key']]);

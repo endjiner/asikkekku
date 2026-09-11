@@ -44,7 +44,10 @@ $base = base_url();
             </td>
             <td class="text-sm"><?php echo html_escape($d['dibuat_oleh']) ?></td>
             <td>
-              <?php if ($d['metode'] === 'upload'): ?>
+              <?php $bolehLihat = !isset($d['boleh_lihat']) || $d['boleh_lihat']; $bolehIsi = !isset($d['boleh_isi']) || $d['boleh_isi']; ?>
+              <?php if (!$bolehLihat): ?>
+                <span class="text-muted text-sm"><i class="fas fa-lock mr-1"></i>Menunggu tahap sebelumnya selesai</span>
+              <?php elseif ($d['metode'] === 'upload'): ?>
                 <span class="text-muted text-sm">unggah berkas (SAKTI / TTE) — belum diwadahi</span>
               <?php else: ?>
                 <div class="d-flex flex-wrap" style="gap:6px">
@@ -56,8 +59,10 @@ $base = base_url();
                   <span class="dok-rk">
                     <?php echo $dot ?>
                     <?php if ($rk['label'] !== ''): ?><span class="text-sm"><?php echo html_escape($rk['label']) ?></span><?php endif ?>
+                    <?php if ($bolehIsi): ?>
                     <a class="btn btn-xs btn-outline-primary" target="_blank"
                        href="<?php echo $base ?>dokumen/form/<?php echo $d['kode'] ?>/<?php echo $KegiatanID . $q ?>">Isi</a>
+                    <?php endif ?>
                     <a class="btn btn-xs btn-outline-secondary" target="_blank"
                        href="<?php echo $base ?>dokumen/cetak/<?php echo $d['kode'] ?>/<?php echo $KegiatanID . $q ?>">Cetak</a>
                     <a class="btn btn-xs btn-outline-dark"
