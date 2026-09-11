@@ -143,6 +143,22 @@ class Dokumen extends App_Controller
 		return is_file($f) ? file_get_contents($f) : '';
 	}
 
+	/**
+	 * Untuk dokumen dengan tabel bersarang (kwitansi, spd) atau <ol>/<li>
+	 * (riil), mPDF menandai tiap objek inline lalu unserialize() potongan
+	 * setelahnya. Begitu ada >1 objek begitu di buffer yang sama, unserialize()
+	 * tetap balikin nilai yang benar TAPI juga E_WARNING "Extra data ..."
+	 * (perilaku unserialize() sejak PHP 7). CI menangkap warning non-fatal itu
+	 * dan langsung meng-echo HTML error di tengah output PDF, bikin header
+	 * "Content-Disposition" gagal terkirim -> unduhan rusak jadi teks HTML.
+	 * mPDF sendiri tidak terganggu oleh warning ini, jadi aman diredam di sini
+	 * saja (bukan global) supaya error PHP lain tetap kelihatan.
+	 */
+	private function _quietMpdfWarnings()
+	{
+		return error_reporting(error_reporting() & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
+	}
+
 	/** Fragmen HTML _render sebuah dokumen (untuk mPDF). */
 	private function _renderHtml($kode, $tpl, $d, $kegiatan, $ttd, $withTtd)
 	{
@@ -167,12 +183,17 @@ class Dokumen extends App_Controller
 
 		$this->M_Dokumen->printLog($KegiatanID, array($kode . ':' . $rangkap), $withTtd, $this->data['UserID']);
 
-		$mpdf = $this->_mpdf();
-		$mpdf->WriteHTML($this->_docCss(), \Mpdf\HTMLParserMode::HEADER_CSS);
-		$mpdf->WriteHTML('<div class="a4">' . $html . '</div>', \Mpdf\HTMLParserMode::HTML_BODY);
 		$name = $kode . '_' . $KegiatanID . ($rangkap !== '-' ? '_' . preg_replace('/[^A-Za-z0-9]+/', '-', $rangkap) : '')
 			. ($withTtd ? '' : '_tanpa-ttd') . '.pdf';
-		$mpdf->Output($name, \Mpdf\Output\Destination::DOWNLOAD);
+		$prevReporting = $this->_quietMpdfWarnings();
+		try {
+			$mpdf = $this->_mpdf();
+			$mpdf->WriteHTML($this->_docCss(), \Mpdf\HTMLParserMode::HEADER_CSS);
+			$mpdf->WriteHTML('<div class="a4">' . $html . '</div>', \Mpdf\HTMLParserMode::HTML_BODY);
+			$mpdf->Output($name, \Mpdf\Output\Destination::DOWNLOAD);
+		} finally {
+			error_reporting($prevReporting);
+		}
 	}
 
 	/** Unduh beberapa dokumen sebagai SATU PDF. ?d[]=kode:rangkap & ttd=0|1 */
@@ -181,25 +202,31 @@ class Dokumen extends App_Controller
 		$KegiatanID = (int) $KegiatanID;
 		$withTtd = ($this->input->get('ttd') !== '0');
 		$sel = (array) $this->input->get('d');
-		$mpdf = $this->_mpdf();
-		$mpdf->WriteHTML($this->_docCss(), \Mpdf\HTMLParserMode::HEADER_CSS);
 		$kegiatan = $this->M_Dokumen->kegiatan($KegiatanID);
-		$n = 0; $isi = array();
-		foreach ($sel as $s) {
-			$p = explode(':', $s, 2);
-			$kode = preg_replace('/[^a-z_]/', '', strtolower($p[0]));
-			$rangkap = isset($p[1]) && $p[1] !== '' ? $p[1] : '-';
-			$tpl = $this->M_Dokumen->template($kode);
-			if (!$tpl) continue;
-			if ($n > 0) $mpdf->AddPage();
-			$html = $this->_renderHtml($kode, $tpl, $this->M_Dokumen->load($kode, $KegiatanID, $rangkap),
-				$kegiatan, $withTtd ? $this->_ttdMap($KegiatanID, $kode, $rangkap) : array(), $withTtd);
-			$mpdf->WriteHTML('<div class="a4">' . $html . '</div>', \Mpdf\HTMLParserMode::HTML_BODY);
-			$isi[] = $kode . ':' . $rangkap; $n++;
+
+		$prevReporting = $this->_quietMpdfWarnings();
+		try {
+			$mpdf = $this->_mpdf();
+			$mpdf->WriteHTML($this->_docCss(), \Mpdf\HTMLParserMode::HEADER_CSS);
+			$n = 0; $isi = array();
+			foreach ($sel as $s) {
+				$p = explode(':', $s, 2);
+				$kode = preg_replace('/[^a-z_]/', '', strtolower($p[0]));
+				$rangkap = isset($p[1]) && $p[1] !== '' ? $p[1] : '-';
+				$tpl = $this->M_Dokumen->template($kode);
+				if (!$tpl) continue;
+				if ($n > 0) $mpdf->AddPage();
+				$html = $this->_renderHtml($kode, $tpl, $this->M_Dokumen->load($kode, $KegiatanID, $rangkap),
+					$kegiatan, $withTtd ? $this->_ttdMap($KegiatanID, $kode, $rangkap) : array(), $withTtd);
+				$mpdf->WriteHTML('<div class="a4">' . $html . '</div>', \Mpdf\HTMLParserMode::HTML_BODY);
+				$isi[] = $kode . ':' . $rangkap; $n++;
+			}
+			if (!$n) { show_error('Tidak ada dokumen dipilih.', 400); return; }
+			$this->M_Dokumen->printLog($KegiatanID, $isi, $withTtd, $this->data['UserID']);
+			$mpdf->Output('paket_' . $KegiatanID . ($withTtd ? '' : '_tanpa-ttd') . '.pdf', \Mpdf\Output\Destination::DOWNLOAD);
+		} finally {
+			error_reporting($prevReporting);
 		}
-		if (!$n) { show_error('Tidak ada dokumen dipilih.', 400); return; }
-		$this->M_Dokumen->printLog($KegiatanID, $isi, $withTtd, $this->data['UserID']);
-		$mpdf->Output('paket_' . $KegiatanID . ($withTtd ? '' : '_tanpa-ttd') . '.pdf', \Mpdf\Output\Destination::DOWNLOAD);
 	}
 
 	/* ---------------- PAKET CETAK / UNDUH (browser-print) ---------------- */

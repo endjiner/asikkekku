@@ -654,18 +654,18 @@ class M_Dokumen extends CI_Model
 
 			$items = array('kelengkapan' => array(), 'verifikasi' => array());
 			// 13 item kelengkapan berkas:
-			$items['kelengkapan'][0]  = array('status' => 'ya', 'ket' => ''); // ST
+			$items['kelengkapan'][0]  = array('status' => $hasST ? 'ya' : '', 'ket' => ''); // ST
 			$items['kelengkapan'][1]  = array('status' => '',   'ket' => ''); // Laporan Kegiatan
 			$items['kelengkapan'][2]  = array('status' => '',   'ket' => ''); // Daftar Absensi
-			$items['kelengkapan'][3]  = array('status' => $hasSPD ? 'ya' : 'ya', 'ket' => ''); // SPD
+			$items['kelengkapan'][3]  = array('status' => $hasSPD ? 'ya' : '', 'ket' => ''); // SPD
 			$items['kelengkapan'][4]  = array('status' => 'ya', 'ket' => ''); // Tiket Transportasi
 			$items['kelengkapan'][5]  = array('status' => 'ya', 'ket' => ''); // Boarding Pass
 			$items['kelengkapan'][6]  = array('status' => 'ya', 'ket' => ''); // Kuitansi Penginapan
 			$items['kelengkapan'][7]  = array('status' => '',   'ket' => ''); // Kwitansi Taksi / BBM
-			$items['kelengkapan'][8]  = array('status' => $hasLPD ? 'ya' : 'ya', 'ket' => ''); // LPD
-			$items['kelengkapan'][9]  = array('status' => $hasNominatif ? 'ya' : 'ya', 'ket' => ''); // Nominatif
-			$items['kelengkapan'][10] = array('status' => $hasKwitansi ? 'ya' : 'ya', 'ket' => ''); // Kwitansi
-			$items['kelengkapan'][11] = array('status' => $hasRiil ? 'ya' : 'ya', 'ket' => ''); // Daftar Riil
+			$items['kelengkapan'][8]  = array('status' => $hasLPD ? 'ya' : '', 'ket' => ''); // LPD
+			$items['kelengkapan'][9]  = array('status' => $hasNominatif ? 'ya' : '', 'ket' => ''); // Nominatif
+			$items['kelengkapan'][10] = array('status' => $hasKwitansi ? 'ya' : '', 'ket' => ''); // Kwitansi
+			$items['kelengkapan'][11] = array('status' => $hasRiil ? 'ya' : '', 'ket' => ''); // Daftar Riil
 			$items['kelengkapan'][12] = array('status' => '',   'ket' => ''); // SSP
 
 			// 3 item verifikasi kesesuaian isi (default SESUAI):
