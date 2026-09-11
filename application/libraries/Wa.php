@@ -40,7 +40,7 @@ class Wa {
 	private function wrap($text)
 	{
 		return "🛎 Notifikasi ASIKKEKKU\n\n" . $text .
-		       "\n\nRgds,\nASIKKEKKU - Balai Besar POM di Pangkal Pinang\n" .
+		       "\n\nRgds,\nASIKKEKKU - Balai POM di Pangkalpinang\n" .
 		       "⛔ Pesan otomatis ini dikirim oleh sistem, mohon untuk tidak membalas.";
 	}
 

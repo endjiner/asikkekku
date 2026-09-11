@@ -12,8 +12,8 @@ while (count($pengikut) < 5) { $pengikut[] = array('nama' => '', 'tgl_lahir' => 
     <tr>
       <td class="spd-kop">
         BADAN PENGAWAS OBAT DAN MAKANAN RI<br>
-        <strong>BALAI BESAR PENGAWAS OBAT DAN MAKANAN</strong><br>
-        DI PANGKAL PINANG
+        <strong>BALAI PENGAWAS OBAT DAN MAKANAN</strong><br>
+        DI PANGKALPINANG
       </td>
       <td class="spd-meta">
         <table>
@@ -29,7 +29,7 @@ while (count($pengikut) < 5) { $pengikut[] = array('nama' => '', 'tgl_lahir' => 
 
   <table class="spd-tbl">
     <tr><td class="spd-n">1</td><td class="spd-k">Pejabat Pembuat Komitmen</td>
-        <td>PEJABAT PEMBUAT KOMITMEN<br>BALAI BESAR POM DI PANGKAL PINANG</td></tr>
+        <td>PEJABAT PEMBUAT KOMITMEN<br>BALAI POM DI PANGKALPINANG</td></tr>
     <tr><td class="spd-n">2</td><td class="spd-k">Nama / NIP Pegawai yang melaksanakan Perjalanan Dinas</td>
         <td><?php echo dok_e($d['pegawai_nama'] ?: '—') ?><br>NIP. <?php echo dok_e($d['pegawai_nip']) ?></td></tr>
     <tr><td class="spd-n">3</td><td class="spd-k">a. Pangkat dan Golongan<br>b. Jabatan / Instansi<br>c. Tingkat Biaya Perjalanan Dinas</td>

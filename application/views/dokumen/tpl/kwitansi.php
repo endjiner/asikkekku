@@ -11,7 +11,7 @@ foreach ($rincian as $r) {
 }
 $nilai = ($d['jumlah'] !== '' && $d['jumlah'] !== null) ? (float) preg_replace('/[^0-9.]/', '', $d['jumlah']) : $sum;
 $total = $sum ?: $nilai;
-$tempat = $d['tempat'] ?: 'Pangkal Pinang';
+$tempat = $d['tempat'] ?: 'Pangkalpinang';
 $tgl    = $d['tanggal'] ? tgl_ind($d['tanggal']) : '&hellip;&hellip;&hellip;';
 ?>
 <div class="kw">

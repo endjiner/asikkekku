@@ -23,8 +23,8 @@ foreach ($baris as $r) { $total += (float) preg_replace('/[^0-9.]/', '', isset($
 <div class="nm">
   <div class="nm-kop">
     <div>BADAN POM RI</div>
-    <div><strong>BALAI BESAR PENGAWAS OBAT DAN MAKANAN</strong></div>
-    <div>DI PANGKAL PINANG</div>
+    <div><strong>BALAI PENGAWAS OBAT DAN MAKANAN</strong></div>
+    <div>DI PANGKALPINANG</div>
     <div class="nm-kop-line"></div>
   </div>
 
