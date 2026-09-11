@@ -332,12 +332,17 @@ class M_Dokumen extends CI_Model
 		// --- Metadata alur: metode, tahap pembuat, slot ttd, cap, urutan cetak ---
 		$meta = array(
 			// kode            metode           dibuat_oleh     slot_ttd                  cap    urut
+			// Sesuai pembagian nyata (lihat GDRIVE/PJ/): PJ-Kegiatan menyiapkan
+			// SEMUA dokumen awal (SPD, Kwitansi, Nominatif, Daftar Riil, SPTJB)
+			// pada tahap pertama. Verifikator baru mengisi Lembar Periksa saat
+			// gilirannya (tahap VRF2). Tahap PPK-Staff/SPM/PPK/PPSPM meneruskan
+			// alur & menandatangani, tidak mengisi ulang dokumen form_inapp ini.
 			'kartu_kendali'  => array('kartu_kendali', 'auto',          array(),                  false,  1),
-			'kwitansi'       => array('form_inapp',    'PPK-Staff',     array('ppk', 'penerima'), true,  10),
+			'kwitansi'       => array('form_inapp',    'PJ-Kegiatan',   array('ppk', 'penerima'), true,  10),
 			'spd'            => array('form_inapp',    'PJ-Kegiatan',   array('ppk'),             false, 20),
-			'nominatif'      => array('form_inapp',    'PPK-Staff',     array('ppk'),             true,  30),
-			'riil'           => array('form_inapp',    'PPK-Staff',     array('ppk', 'penerima'), true,  40),
-			'sptjb'          => array('form_inapp',    'PPK-Staff',     array('ppk'),             true,  50),
+			'nominatif'      => array('form_inapp',    'PJ-Kegiatan',   array('ppk'),             true,  30),
+			'riil'           => array('form_inapp',    'PJ-Kegiatan',   array('ppk', 'penerima'), true,  40),
+			'sptjb'          => array('form_inapp',    'PJ-Kegiatan',   array('ppk'),             true,  50),
 			'lembar_periksa' => array('checklist',     'Verifikator',   array(),                  false, 60),
 		);
 		foreach ($t as $kode => &$row) {
@@ -367,10 +372,113 @@ class M_Dokumen extends CI_Model
 	}
 
 	/**
+	 * FlowOrder tahap yang sedang aktif/terakhir tercapai untuk sebuah kegiatan.
+	 * Dipakai membatasi: dokumen tahap berikutnya yang belum diisi tidak boleh
+	 * dilihat/diakses sebelum gilirannya tiba.
+	 *   - Draft ('editable' / status kosong) -> tahap 1 (PJ baru menyusun).
+	 *   - OnProgress / Perlu Revisi           -> tahap aktif sekarang
+	 *     (M_Manajemen_approval::GetLastStatus menangani maju/mundur/revisi).
+	 *   - Selesai / Dibatalkan / lainnya      -> dianggap semua tahap sudah
+	 *     lewat, supaya seluruh dokumen tetap bisa dilihat (arsip).
+	 * null kalau kegiatan tidak ditemukan.
+	 */
+	public function stageAktif($KegiatanID)
+	{
+		$keg = $this->kegiatan((int) $KegiatanID);
+		if (empty($keg)) return null;
+		$jenisID = (!empty($keg['KegiatanJenisID'])) ? (int) $keg['KegiatanJenisID'] : 1;
+		$status  = isset($keg['KegiatanStatus']) ? $keg['KegiatanStatus'] : '';
+
+		if ($status === '' || $status === 'editable') {
+			return 1;
+		}
+		if ($status === 'Approval OnProgress' || $status === 'Perlu Revisi') {
+			$this->load->model('M_Manajemen_approval');
+			$rows = $this->M_Manajemen_approval->GetLastStatus((int) $KegiatanID);
+			return !empty($rows[0]['FlowOrder']) ? (int) $rows[0]['FlowOrder'] : 1;
+		}
+		$max = $this->db->select_max('FlowOrder', 'mx')->get_where('tb_approval_flow', array('JenisID' => $jenisID))->row_array();
+		return (!empty($max['mx']) ? (int) $max['mx'] : 6) + 1;
+	}
+
+	/** FlowOrder pertama (terkecil, tahap aktif bukan dorman) milik sebuah posisi. */
+	private function _flowOrderOfRole($role, $jenisID = 1)
+	{
+		if ($role === '' || $role === 'auto') return 0;
+		$r = $this->db->select_min('FlowOrder', 'mn')
+			->get_where('tb_approval_flow', array('FlowPosition' => $role, 'JenisID' => (int) $jenisID, 'FlowOrder >' => 0))
+			->row_array();
+		return !empty($r['mn']) ? (int) $r['mn'] : 0;
+	}
+
+	/**
+	 * Hak akses viewer atas satu dokumen sebuah kegiatan.
+	 *   lihat -> boleh melihat/mencetak/mengunduh (dokumen sudah "waktunya").
+	 *   isi   -> boleh mengisi/menyimpan SEKARANG (persis di tahapnya & perannya).
+	 * SuperAdmin selalu boleh lihat+isi. Dokumen 'auto' (Kartu Kendali) selalu
+	 * boleh dilihat, tak ada yang mengisi manual.
+	 */
+	public function aksesDokumen($kode, $KegiatanID, $viewerPosition)
+	{
+		$tpl = $this->template($kode);
+		if (!$tpl) return array('lihat' => false, 'isi' => false);
+
+		$dibuatOleh = $tpl['dibuat_oleh'];
+		if ($dibuatOleh === 'auto') return array('lihat' => true, 'isi' => false);
+		if ($viewerPosition === 'SuperAdmin') return array('lihat' => true, 'isi' => true);
+
+		$keg = $this->kegiatan((int) $KegiatanID);
+		if (empty($keg)) return array('lihat' => false, 'isi' => false);
+		$jenisID = (!empty($keg['KegiatanJenisID'])) ? (int) $keg['KegiatanJenisID'] : 1;
+		$status  = isset($keg['KegiatanStatus']) ? $keg['KegiatanStatus'] : '';
+
+		$stageAktif   = $this->stageAktif($KegiatanID);
+		$stageDokumen = $this->_flowOrderOfRole($dibuatOleh, $jenisID);
+
+		if ($stageAktif === null || $stageDokumen === 0 || $stageDokumen > $stageAktif) {
+			return array('lihat' => false, 'isi' => false);
+		}
+
+		// Jendela isi: dari tahap pemilik dokumen ini sampai SEBELUM tahap
+		// pemilik-dokumen-LAIN berikutnya mulai -- bukan cuma "persis satu
+		// tahap". Perlu begini karena tahap PJK selalu langsung FlowResult=1
+		// otomatis begitu kegiatan diajukan (lihat M_Manajemen_approval); kalau
+		// disyaratkan "stageAktif == stageDokumen" persis, PJ kehilangan akses
+		// isi SESAAT setelah mengajukan, sebelum sempat mengisi apa pun.
+		$batasAtas = $this->_stageBerikutnyaBerbedaOwner($stageDokumen, $jenisID);
+		$sedangBerjalan = in_array($status, array('editable', 'Approval OnProgress', 'Perlu Revisi'), true);
+		$isi = $sedangBerjalan && $viewerPosition === $dibuatOleh
+			&& ($batasAtas === null || $stageAktif < $batasAtas);
+
+		return array('lihat' => true, 'isi' => $isi);
+	}
+
+	/** FlowOrder tahap pemilik-dokumen-LAIN pertama setelah $stageDokumen (null = tak ada / sampai akhir). */
+	private function _stageBerikutnyaBerbedaOwner($stageDokumen, $jenisID)
+	{
+		$stages = array();
+		foreach ($this->templatesForJenis($jenisID) as $t) {
+			if ($t['dibuat_oleh'] === 'auto') continue;
+			$fo = $this->_flowOrderOfRole($t['dibuat_oleh'], $jenisID);
+			if ($fo > 0) $stages[$fo] = true;
+		}
+		$stages = array_keys($stages);
+		sort($stages);
+		foreach ($stages as $s) {
+			if ($s > $stageDokumen) return $s;
+		}
+		return null;
+	}
+
+	/**
 	 * Daftar dokumen untuk sebuah kegiatan + status pengisian (dari tb_dokumen).
 	 * Untuk panel dokumen di layar Persetujuan / Daftar Pengajuan.
+	 *
+	 * $viewerPosition: kalau diisi, tiap baris disertai 'boleh_lihat'/'boleh_isi'
+	 * untuk peran tsb (lihat aksesDokumen()). Kosongkan untuk daftar "mentah"
+	 * tanpa gating (mis. dipakai backend lain yang sudah menggerbang sendiri).
 	 */
-	public function dokumenUntukKegiatan($KegiatanID)
+	public function dokumenUntukKegiatan($KegiatanID, $viewerPosition = null)
 	{
 		$KegiatanID = (int) $KegiatanID;
 		$keg = $this->kegiatan($KegiatanID);
@@ -397,6 +505,7 @@ class M_Dokumen extends CI_Model
 					'diperbarui' => isset($saved[$kode][$k]) ? $saved[$kode][$k]['UpdatedAt'] : null,
 				);
 			}
+			$akses = ($viewerPosition !== null) ? $this->aksesDokumen($kode, $KegiatanID, $viewerPosition) : array('lihat' => true, 'isi' => true);
 			$out[] = array(
 				'kode'        => $kode,
 				'nama'        => $tpl['nama'],
@@ -408,6 +517,8 @@ class M_Dokumen extends CI_Model
 				'rangkap'     => $rangkap,
 				'ada'         => count(array_filter($rangkap, function ($x) { return $x['terisi']; })),
 				'total'       => count($rangkap),
+				'boleh_lihat' => $akses['lihat'],
+				'boleh_isi'   => $akses['isi'],
 			);
 		}
 		return $out;
