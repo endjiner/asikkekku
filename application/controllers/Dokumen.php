@@ -611,6 +611,21 @@ class Dokumen extends App_Controller
 		$userID   = $this->session->userdata('UserID');
 		$UploadID = (int) $this->input->post('UploadID');
 		$slot     = $this->input->post('slot');
+		$slotChk  = preg_replace('/[^a-z0-9_]/', '', strtolower((string) $slot));
+
+		// Gate: ppk -> hanya PPK, ppspm -> hanya PPSPM atau SuperAdmin.
+		// Halaman GET ttdUpload() sudah menampilkan gate ini untuk UI, tapi
+		// endpoint simpan ini tetap harus memvalidasi ulang di server --
+		// kalau tidak, siapa pun yang login bisa POST langsung ke sini dan
+		// "menandatangani" slot PPK/PPSPM memakai akunnya sendiri.
+		$boleh = false;
+		if ($slotChk === 'ppk' && $pos === 'PPK') $boleh = true;
+		elseif ($slotChk === 'ppspm' && in_array($pos, array('PPSPM', 'SuperAdmin'), true)) $boleh = true;
+		if (!$boleh) {
+			$this->output->set_content_type('application/json')
+				->set_output(json_encode(array('ok' => false, 'msg' => 'Anda tidak berwenang menandatangani slot ini.')));
+			return;
+		}
 
 		// Decode image base64
 		$imgB64 = $this->input->post('image');
