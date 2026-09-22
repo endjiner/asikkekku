@@ -16,3 +16,4 @@ writable/uploads/*
 .vscode/
 node_modules/
 ~$*
+application/logs/*

@@ -14,7 +14,7 @@
 
   <link rel="stylesheet" href="<?= base_url() ?>assets/template/dist/css/adminlte.min.css">
   <link rel="stylesheet" href="<?= base_url() ?>assets/template/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
-  <link rel="stylesheet" href="<?= base_url() ?>assets/css/custom-jtp.css?v=20260911-shell3">
+  <link rel="stylesheet" href="<?= base_url() ?>assets/css/custom-jtp.css?v=20260922-ui1">
 </head>
 
 <body class="public-body">
@@ -58,47 +58,21 @@
 
     <div class="pub-container pub-body-inner">
       <form role="form" class="form-search search-card" autocomplete="off" onsubmit="return false;">
-        <input type="hidden" name="type_result" value="kuitansi">
-        <div class="row">
-          <div class="col-md-3 col-sm-6 sc-col">
-            <label for="search-type-result">Jenis Data</label>
-            <div class="sc-field"><?php echo svgico('fund', 16) ?>
-              <select id="search-type-result" class="form-control" disabled><option>Kartu Kuitansi</option></select>
-            </div>
-          </div>
-          <div class="col-md-3 col-sm-6 sc-col">
-            <label for="search-type">Cari Berdasarkan</label>
-            <div class="sc-field"><?php echo svgico('user', 16) ?>
-              <select id="search-type" name="type_search" class="form-control">
-                <option value="no_sptb">No. SPTB</option>
-                <option value="no_surat">No. Surat</option>
-                <option value="judul_kegiatan" selected>Judul Kegiatan</option>
-                <option value="nama_petugas">Nama Petugas / Penyedia</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-md-3 col-sm-6 sc-col">
-            <label for="search-order-sort">Urutan</label>
-            <div class="sc-field"><?php echo svgico('refresh', 16) ?>
-              <select id="search-order-sort" name="order_sort" class="form-control">
-                <option value="asc">A → Z</option>
-                <option value="desc">Z → A</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-md-3 col-sm-6 sc-col">
-            <label for="search-order-by">Urut Berdasarkan</label>
-            <div class="sc-field"><?php echo svgico('calendar', 16) ?>
-              <select id="search-order-by" name="order_by" class="form-control">
-                <option value="tanggal">Tanggal</option>
-                <option value="nama">Nama</option>
-              </select>
-            </div>
-          </div>
-        </div>
         <div class="sc-search">
-          <span class="sc-search-ico"><?php echo svgico('search', 18) ?></span>
-          <input type="search" id="search-text" name="search_text" placeholder="Masukkan kata kunci pencarian…" aria-label="Kata kunci pencarian">
+          <div class="sc-type-wrap">
+            <span class="sc-type-ico"><?php echo svgico('filter', 15) ?></span>
+            <select id="search-type" name="type_search" class="sc-type-select" aria-label="Cari Berdasarkan">
+              <option value="all" selected>Semua Kategori</option>
+              <option value="nama_petugas">Nama Petugas / Penyedia</option>
+              <option value="judul_kegiatan">Judul Kegiatan</option>
+              <option value="no_sptb">No. SPTB / SPTJB</option>
+              <option value="no_surat">No. Surat Tugas</option>
+            </select>
+          </div>
+          <div class="sc-input-wrap">
+            <span class="sc-search-ico"><?php echo svgico('search', 18) ?></span>
+            <input type="search" id="search-text" name="search_text" placeholder="Cari berdasarkan nama, kegiatan, no. SPTB, atau no. surat…" aria-label="Kata kunci pencarian">
+          </div>
           <button type="submit" class="btn-cari"><?php echo svgico('search', 18) ?> Cari</button>
         </div>
       </form>
@@ -111,7 +85,14 @@
               <div class="table-responsive">
                 <table id="result-table" class="table table-hover w-100">
                   <thead>
-                    <tr><th>Nama</th><th>Kegiatan</th><th>No. SPTJB</th><th>Status</th><th></th></tr>
+                    <tr>
+                      <th>Nama</th>
+                      <th>Kegiatan</th>
+                      <th>No. SPTJB</th>
+                      <th>Tanggal</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
                   </thead>
                   <tbody></tbody>
                 </table>
@@ -120,7 +101,12 @@
           </div>
         </div>
         <div class="col-lg-5 status-col" id="statusCol">
-          <h5 class="rc-title"><?php echo illus('approval-inbox', 28) ?> <span>Status</span></h5>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="rc-title mb-0"><?php echo illus('approval-inbox', 28) ?> <span>Status</span></h5>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="btnCloseStatus" style="font-size: .78rem; padding: 2px 10px; border-radius: 6px;">
+              ✕ Tutup
+            </button>
+          </div>
           <div class="card">
             <div class="card-body">
               <div class="status-panel" id="statusPanel">
@@ -165,60 +151,228 @@
 
     /* ---- Tabel hasil ---- */
     var CEK_ICON = '<?php echo str_replace(array("\r","\n"), "", addslashes(svgico("eye", 15))) ?>';
+    var CLOSE_ICON = '✕';
+    var EMPTY_STATUS = '<p class="text-muted text-center py-4 mb-0">Pilih salah satu hasil untuk melihat status pengajuannya.</p>';
+    var activeKegiatanID = null;
+    var statusCache = {};
+
+    var mqlDesktop = window.matchMedia('(min-width: 992px)');
+    var isDesktop = function () { return mqlDesktop.matches; };
+    var currentIsDesktop = isDesktop();
+
     var table = $('#result-table').DataTable({
       dom: "<'row dt-controls'<'col-sm-6'l><'col-sm-6'f>>t<'row dt-foot'<'col-sm-5'i><'col-sm-7'p>>",
       language: {
         lengthMenu: 'Tampilkan _MENU_ baris', info: 'Menampilkan _START_–_END_ dari _TOTAL_',
         infoEmpty: 'Tidak ada data', infoFiltered: '(disaring dari _MAX_)',
         search: '', searchPlaceholder: 'Saring hasil…', paginate: { previous: '‹', next: '›' },
-        zeroRecords: 'Tidak ada hasil yang cocok.', emptyTable: 'Lakukan pencarian di atas untuk melihat hasil.'
+        zeroRecords: 'Tidak ada hasil yang cocok.', emptyTable: 'Ketik kata kunci pencarian di atas untuk melihat hasil.'
       },
       lengthMenu: [5, 10, 25, 50], pageLength: 10, order: [], autoWidth: false,
       ajax: { url: base + 'FrontPage/ListResult', type: 'GET', data: function (d) {
-        $('form.form-search').serializeArray().forEach(function (x) { d[x.name] = x.value; });
+        d.search_text = $('#search-text').val();
+        d.type_search = $('#search-type').val();
       }},
       columns: [
         { data: 'nama' },
         { data: 'kegiatan' },
         { data: 'sptjb', className: 'text-nowrap' },
+        { data: 'tanggal', className: 'text-nowrap' },
         { data: 'status', className: 'text-center', orderable: false },
         { data: null, orderable: false, className: 'text-center text-nowrap',
-          render: function (row) { return '<button type="button" class="btn-cek" data="' + row.KegiatanID + '">' + CEK_ICON + ' Cek</button>'; } }
+          render: function (row) { return '<button type="button" class="btn-cek" data="' + row.KegiatanID + '">' + CEK_ICON + ' <span>Cek</span></button>'; } }
       ]
+    });
+
+    function updateSearchPlaceholder() {
+      var type = $('#search-type').val();
+      var ph = 'Cari berdasarkan nama, kegiatan, no. SPTB, atau no. surat…';
+      if (type === 'nama_petugas') {
+        ph = 'Masukkan nama petugas atau penyedia…';
+      } else if (type === 'judul_kegiatan') {
+        ph = 'Masukkan kata kunci judul kegiatan…';
+      } else if (type === 'no_sptb') {
+        ph = 'Masukkan nomor SPTB / SPTJB…';
+      } else if (type === 'no_surat') {
+        ph = 'Masukkan nomor surat tugas / SK…';
+      }
+      $('#search-text').attr('placeholder', ph);
+    }
+
+    $('#search-type').on('change', function () {
+      updateSearchPlaceholder();
+      if ($.trim($('#search-text').val()).length > 0) {
+        resetAllStatus();
+        table.ajax.reload();
+      }
+    });
+
+    var searchTimer = null;
+    $('#search-text').on('input', function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        resetAllStatus();
+        table.ajax.reload();
+      }, 350);
     });
 
     $('form.form-search').on('submit', function (e) {
       e.preventDefault();
+      clearTimeout(searchTimer);
+      resetAllStatus();
       table.ajax.reload();
-      $('#statusPanel').html('<p class="text-muted text-center py-4 mb-0">Pilih salah satu hasil untuk melihat status pengajuannya.</p>');
     });
 
-    function loadStatus(id, $tr) {
+    function fetchStatus(id, callback) {
+      if (statusCache[id]) {
+        callback(null, statusCache[id]);
+        return;
+      }
+      $.ajax({
+        url: base + 'FrontPage/ListStatus',
+        type: 'POST',
+        data: { KegiatanID: id },
+        success: function (html) {
+          statusCache[id] = html;
+          callback(null, html);
+        },
+        error: function () {
+          callback('error', '<div class="alert alert-danger mb-0">Gagal memuat status pengajuan. Silakan coba lagi.</div>');
+        }
+      });
+    }
+
+    function resetAllStatus() {
+      activeKegiatanID = null;
+      $('#result-table tbody tr').removeClass('row-active shown');
+      $('#result-table .btn-cek').removeClass('btn-cek-active').html(CEK_ICON + ' <span>Cek</span>');
+      table.rows().every(function () {
+        if (this.child.isShown()) this.child.hide();
+      });
+      $('#statusPanel').html(EMPTY_STATUS);
+      $('#btnCloseStatus').addClass('d-none');
+    }
+
+    function renderActiveStatus() {
+      if (!activeKegiatanID) return;
+
+      var foundTr = null;
+      $('#result-table tbody tr').each(function () {
+        var d = table.row(this).data();
+        if (d && d.KegiatanID == activeKegiatanID) {
+          foundTr = $(this);
+        }
+      });
+
       if (isDesktop()) {
-        $('#result-table tbody tr').removeClass('row-active');
-        if ($tr) $tr.addClass('row-active');
-        $('#statusPanel').html('<p class="text-muted text-center py-3 mb-0">Memuat status…</p>')
-          .load(base + 'FrontPage/ListStatus', { KegiatanID: id }, function (response, status) {
-            if (status === 'error') $box.html('<div class="alert alert-danger">Gagal memuat status pengajuan. Silakan coba lagi.</div>');
-          });
-      } else {
-        var r = table.row($tr);
-        if (r.child.isShown()) { r.child.hide(); $tr.removeClass('shown'); return; }
-        var $box = $('<div class="inline-status open">Memuat status…</div>');
-        r.child($box).show(); $tr.addClass('shown');
-        $box.load(base + 'FrontPage/ListStatus', { KegiatanID: id }, function (response, status) {
-          if (status === 'error') $box.html('<div class="alert alert-danger">Gagal memuat status pengajuan. Silakan coba lagi.</div>');
+        // Desktop: Tampilkan di card samping kanan, tutup baris anak di tabel
+        table.rows().every(function () {
+          if (this.child.isShown()) this.child.hide();
         });
+        $('#result-table tbody tr').removeClass('shown');
+
+        if (foundTr && foundTr.length) {
+          foundTr.addClass('row-active');
+          foundTr.find('.btn-cek').addClass('btn-cek-active').html(CLOSE_ICON + ' <span>Tutup</span>');
+        }
+        $('#btnCloseStatus').removeClass('d-none');
+        $('#statusPanel').html('<p class="text-muted text-center py-4 mb-0">Memuat status…</p>');
+
+        fetchStatus(activeKegiatanID, function (err, html) {
+          if (activeKegiatanID && isDesktop()) {
+            $('#statusPanel').html(html);
+          }
+        });
+      } else {
+        // Layar kecil / Mobile: Tampilkan inline di bawah baris data
+        $('#statusPanel').html(EMPTY_STATUS);
+        $('#btnCloseStatus').addClass('d-none');
+
+        if (foundTr && foundTr.length) {
+          var r = table.row(foundTr);
+          table.rows().every(function () {
+            if (this.child.isShown()) this.child.hide();
+          });
+          $('#result-table tbody tr').not(foundTr).removeClass('row-active shown');
+          $('#result-table .btn-cek').not(foundTr.find('.btn-cek')).removeClass('btn-cek-active').html(CEK_ICON + ' <span>Cek</span>');
+
+          foundTr.addClass('shown row-active');
+          foundTr.find('.btn-cek').addClass('btn-cek-active').html(CLOSE_ICON + ' <span>Tutup</span>');
+
+          var $box = $('<div class="inline-status open"><p class="text-muted text-center py-2 mb-0">Memuat status…</p></div>');
+          r.child($box).show();
+
+          fetchStatus(activeKegiatanID, function (err, html) {
+            if (activeKegiatanID && !isDesktop()) {
+              $box.html(html);
+            }
+          });
+        }
       }
     }
-    $('#result-table tbody').on('click', 'tr', function () {
-      var d = table.row(this).data();
-      if (d) loadStatus(d.KegiatanID, $(this));
+
+    function toggleStatus(id, $tr) {
+      if (!id || !$tr || !$tr.length) return;
+
+      var isCurrentlyActive = (activeKegiatanID == id);
+
+      if (isCurrentlyActive) {
+        resetAllStatus();
+        return;
+      }
+
+      resetAllStatus();
+      activeKegiatanID = id;
+      renderActiveStatus();
+    }
+
+    $('#btnCloseStatus').on('click', function () {
+      resetAllStatus();
     });
+
+    $('form.form-search').on('submit', function (e) {
+      e.preventDefault();
+      resetAllStatus();
+      table.ajax.reload();
+    });
+
+    table.on('draw', function () {
+      if (activeKegiatanID) {
+        renderActiveStatus();
+      }
+    });
+
+    $('#result-table tbody').on('click', 'tr', function (e) {
+      if ($(e.target).closest('.btn-cek').length) return;
+      var d = table.row(this).data();
+      if (d) toggleStatus(d.KegiatanID, $(this));
+    });
+
     $('#result-table tbody').on('click', '.btn-cek', function (e) {
       e.stopPropagation();
-      loadStatus($(this).attr('data'), $(this).closest('tr'));
+      var id = $(this).attr('data');
+      var $tr = $(this).closest('tr');
+      toggleStatus(id, $tr);
     });
+
+    function handleLayoutChange() {
+      var desktopNow = isDesktop();
+      if (desktopNow !== currentIsDesktop) {
+        currentIsDesktop = desktopNow;
+        if (activeKegiatanID) {
+          renderActiveStatus();
+        } else {
+          resetAllStatus();
+        }
+      }
+    }
+
+    if (mqlDesktop.addEventListener) {
+      mqlDesktop.addEventListener('change', handleLayoutChange);
+    } else {
+      mqlDesktop.addListener(handleLayoutChange);
+    }
+    $(window).on('resize', handleLayoutChange);
   });
 </script>
 </body>

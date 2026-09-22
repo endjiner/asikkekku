@@ -52,6 +52,26 @@ class M_Dashboard extends BaseModel
         return $data;
     }
 
+    public function GetPjSummary()
+    {
+        $uid = (int) $this->UserID;
+        $draft = (int) $this->db->query(
+            "SELECT COUNT(*) c FROM tb_kegiatan WHERE KegiatanUserID = ? AND KegiatanStatus = 'editable' AND KegiatanDeletedAt IS NULL", [$uid])->getRow()->c;
+        $onProgress = (int) $this->db->query(
+            "SELECT COUNT(*) c FROM tb_kegiatan WHERE KegiatanUserID = ? AND KegiatanStatus = 'Approval OnProgress' AND KegiatanDeletedAt IS NULL", [$uid])->getRow()->c;
+        $complete = (int) $this->db->query(
+            "SELECT COUNT(*) c FROM tb_kegiatan WHERE KegiatanUserID = ? AND KegiatanStatus = 'Approval Selesai' AND KegiatanDeletedAt IS NULL", [$uid])->getRow()->c;
+        $total = (int) $this->db->query(
+            "SELECT COUNT(*) c FROM tb_kegiatan WHERE KegiatanUserID = ? AND KegiatanDeletedAt IS NULL", [$uid])->getRow()->c;
+
+        return [
+            'draft'       => $draft,
+            'on_progress' => $onProgress,
+            'complete'    => $complete,
+            'total'       => $total,
+        ];
+    }
+
     /**
      * Daftar hal yang perlu ditindak oleh user yang sedang login,
      * disesuaikan dengan posisinya (quick action di dashboard).

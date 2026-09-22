@@ -91,12 +91,19 @@
       form.find('textarea').val('')
       form.find('select').val(null).trigger('change')
       $('.div_remove_KegiatanLampiranPrev').hide()
+      $('#tab-data-pokok-btn').tab('show')
     }
     $("form.KegiatanModify").submit(function(e) {
       e.preventDefault(); 
       var form = $(this);
       var modal_id = form.closest('.modal').attr('id')
       var action_url = form.attr('action');
+
+      // Gabungkan Tempat Asal & Tempat Tujuan secara otomatis untuk kompatibilitas SPD / DB
+      var asal = ($('#kegiatan-asal').val() || '').trim();
+      var tujuan = ($('#kegiatan-tujuan').val() || '').trim();
+      var combo = asal ? (asal + (tujuan ? ' ke ' + tujuan + ' PP' : '')) : tujuan;
+      $('#kegiatan-asal-tujuan').val(combo);
 
       $.ajax({
         type: "POST",
@@ -117,6 +124,23 @@
         }
       });
     });
+    // Quick template button Surat Tugas
+    $('body').on('click', '.btn-st-tpl', function() {
+      var prefix = $(this).attr('data-prefix');
+      $('#kegiatan-no-surat').val(prefix).focus();
+    });
+
+    // Auto-fill No WhatsApp berdasarkan tipe pemohon
+    $('body').on('change', '#kegiatan-pemohon-tipe', function() {
+      var tipe = $(this).val();
+      var userPhone = $('#kegiatan-pemohon-phone').attr('data-user-phone') || '';
+      if (tipe === 'internal') {
+        if (!$('#kegiatan-pemohon-phone').val() || $('#kegiatan-pemohon-phone').val() === '') {
+          $('#kegiatan-pemohon-phone').val(userPhone);
+        }
+      }
+    });
+
     // Muat ulang opsi "Petugas Tujuan" sesuai jenis pengajuan terpilih.
     // selectAfter (opsional): UserID yang di-set setelah opsi dibangun.
     function reloadPetugasTujuan(jenisID, selectAfter) {
@@ -160,20 +184,148 @@
       $row.find('.pel-npwp').val(d.NPWP || d.npwp || '');
       $('#pel-list').append($row);
     }
-    $('body').on('change', '.pel-user', function() {
-      var id = parseInt($(this).val(), 10);
-      if (!id) return;
-      var p = (window.PEGAWAI || []).filter(function(x){ return x.id === id; })[0];
-      if (!p) return;
+    // Helper: hanya cocok jika ada salah satu kata dalam nama yang diawali query (misal 'pri' -> cocok 'Priya' atau 'Alvin Priantama')
+    function matchPrefixKata(nama, query) {
+      if (!query) return false;
+      var q = query.toLowerCase().trim();
+      if (!q) return false;
+      var words = (nama || '').toLowerCase().split(/[\s,.\-_/()]+/);
+      return words.some(function(w) {
+        return w.indexOf(q) === 0;
+      });
+    }
+
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function fillPegawaiData($row, p) {
+      if (p) {
+        $row.find('.pel-nama').val(p.nama || '');
+        $row.find('.pel-user').val(p.id || '');
+        $row.find('.pel-nip').val(p.nip || '');
+        $row.find('.pel-gol').val(p.gol || '');
+        $row.find('.pel-jabatan').val(p.jabatan || '');
+        if (!$row.find('.pel-rekening').val()) $row.find('.pel-rekening').val(p.rekening || '');
+        if (!$row.find('.pel-bank').val()) $row.find('.pel-bank').val(p.bank || '');
+        if (!$row.find('.pel-npwp').val()) $row.find('.pel-npwp').val(p.npwp || '');
+        if (p.phone && !$('#kegiatan-pemohon-phone').val()) {
+          $('#kegiatan-pemohon-phone').val(p.phone);
+        }
+        $row.find('.pel-status-hint').html('<span class="text-success font-weight-bold">✓ Pegawai Internal BPOM (NIP & Golongan terisi otomatis)</span>');
+      } else {
+        $row.find('.pel-user').val('');
+        $row.find('.pel-status-hint').html('<span class="text-info font-weight-bold">ℹ Pelaksana / Penyedia Eksternal (NIP & Golongan opsional)</span>');
+      }
+    }
+
+    $('body').on('input focus', '.pel-nama', function() {
+      var val = ($(this).val() || '').trim();
+      var $wrap = $(this).closest('.pel-nama-wrap');
+      var $box = $wrap.find('.pel-suggest-box');
       var $r = $(this).closest('.pel-row');
-      $r.find('.pel-nama').val(p.nama || '');
-      $r.find('.pel-nip').val(p.nip || '');
-      $r.find('.pel-gol').val(p.gol || '');
-      $r.find('.pel-jabatan').val(p.jabatan || '');
-      $r.find('.pel-rekening').val(p.rekening || '');
-      $r.find('.pel-bank').val(p.bank || '');
-      $r.find('.pel-npwp').val(p.npwp || '');
+
+      if (!val) {
+        $box.addClass('d-none').empty();
+        $r.find('.pel-user').val('');
+        $r.find('.pel-status-hint').html('💡 Ketik awalan nama pegawai untuk auto-fill, atau ketik nama penyedia luar.');
+        return;
+      }
+
+      // Filter hanya nama yang memiliki kata berawalan 'val' (misal: "pri" -> "Priya", "Alvin Priantama")
+      var matches = (window.PEGAWAI || []).filter(function(p) {
+        return matchPrefixKata(p.nama, val);
+      });
+
+      if (matches.length > 0) {
+        var html = '';
+        matches.slice(0, 8).forEach(function(p) {
+          html += '<div class="pel-suggest-item" data-id="' + p.id + '">' +
+                    '<div>' +
+                      '<div class="pel-suggest-nama">' + escHtml(p.nama) + '</div>' +
+                      '<div class="pel-suggest-nip">NIP: ' + escHtml(p.nip || '-') + ' | ' + escHtml(p.jabatan || '-') + '</div>' +
+                    '</div>' +
+                    '<span class="pel-suggest-badge">' + escHtml(p.gol || 'Internal') + '</span>' +
+                  '</div>';
+        });
+        $box.html(html).removeClass('d-none');
+      } else {
+        $box.addClass('d-none').empty();
+      }
+
+      // Cari apakah teks input persis sama dengan nama pegawai
+      var exact = (window.PEGAWAI || []).filter(function(x) {
+        return (x.nama && x.nama.toLowerCase() === val.toLowerCase());
+      })[0];
+      fillPegawaiData($r, exact);
     });
+
+    $('body').on('click', '.pel-suggest-item', function() {
+      var id = $(this).attr('data-id');
+      var $r = $(this).closest('.pel-row');
+      var $box = $(this).closest('.pel-suggest-box');
+      var p = (window.PEGAWAI || []).filter(function(x) { return x.id == id; })[0];
+      if (p) {
+        fillPegawaiData($r, p);
+      }
+      $box.addClass('d-none').empty();
+    });
+
+    $(document).on('click', function(e) {
+      if (!$(e.target).closest('.pel-nama-wrap').length) {
+        $('.pel-suggest-box').addClass('d-none');
+      }
+      if (!$(e.target).closest('.output-wrap').length) {
+        $('.output-suggest-box').addClass('d-none');
+      }
+    });
+
+    // ---- Autocomplete & Suggestion untuk Kode Output ----
+    $('body').on('focus input', '#kegiatan-kode-output', function() {
+      var val = ($(this).val() || '').trim().toLowerCase();
+      var $wrap = $(this).closest('.output-wrap');
+      var $box = $wrap.find('.output-suggest-box');
+      var list = window.OFFICIAL_OUTPUTS || [];
+
+      var matches = list.filter(function(o) {
+        if (!val) return true; // tampilkan semua jika kotak baru diklik
+        return o.code.toLowerCase().indexOf(val) !== -1;
+      });
+
+      if (matches.length > 0) {
+        var html = '';
+        matches.forEach(function(o) {
+          html += '<div class="output-suggest-item" data-code="' + escHtml(o.code) + '" data-verif="' + escHtml(o.verif) + '">' +
+                    '<span class="font-weight-bold text-dark text-sm">' + escHtml(o.code) + '</span>' +
+                  '</div>';
+        });
+        $box.html(html).removeClass('d-none');
+      } else {
+        $box.addClass('d-none').empty();
+      }
+    });
+
+    $('body').on('click', '.output-suggest-item', function() {
+      var code = $(this).attr('data-code');
+      var verif = $(this).attr('data-verif');
+      var $inp = $('#kegiatan-kode-output');
+      $inp.val(code);
+      $(this).closest('.output-suggest-box').addClass('d-none').empty();
+
+      // Auto-select Verifikator sesuai tabel resmi (Hana vs Ratna) bila ada di dropdown Petugas Tujuan
+      if (verif) {
+        var $dest = $('#kegiatan-dest-user');
+        $dest.find('option').each(function() {
+          var txt = $(this).text().toLowerCase();
+          if (txt.indexOf(verif.toLowerCase()) !== -1) {
+            $dest.val($(this).val());
+            return false;
+          }
+        });
+      }
+    });
+
     $('body').on('click', '#pel-add', function() { pelAddRow({}); });
     $('body').on('click', '.pel-del', function() {
       var $l = $('#pel-list');
@@ -185,9 +337,14 @@
       var form = $('form.KegiatanModify');
       formReset(form)
       $('#pel-list').empty(); pelIdx = 0; pelAddRow({});
-      $('select[name=KegiatanKodeOutput]').val('');
+      $('input[name=KegiatanKodeOutput]').val('');
+      $('#kegiatan-asal').val('Pangkal Pinang');
+      $('#kegiatan-tujuan').val('');
       $('input[name=KegiatanAsalTujuan]').val('');
       $('input[name=KegiatanJmlHari]').val('');
+      var userPhone = $('#kegiatan-pemohon-phone').attr('data-user-phone') || '';
+      $('#kegiatan-pemohon-phone').val(userPhone);
+      $('select[name=KegiatanPemohonTipe]').val('internal');
       var $jenis = $('select[name=KegiatanJenisID]');
       $jenis.prop('selectedIndex', 0);
       reloadPetugasTujuan($jenis.val(), null);
@@ -208,8 +365,23 @@
           $('input[name=KegiatanJudul]').val(Kegiatan['KegiatanJudul'])
           $('input[name=KegiatanTanggal]').val(Kegiatan['KegiatanTanggal'])
           $('textarea[name=KegiatanKeterangan]').val(Kegiatan['KegiatanKeterangan'])
-          $('select[name=KegiatanKodeOutput]').val(Kegiatan['KegiatanKodeOutput'] || '')
-          $('input[name=KegiatanAsalTujuan]').val(Kegiatan['KegiatanAsalTujuan'] || '')
+          $('input[name=KegiatanKodeOutput]').val(Kegiatan['KegiatanKodeOutput'] || '')
+          
+          var rawAsalTujuan = Kegiatan['KegiatanAsalTujuan'] || '';
+          var parsedAsal = 'Pangkal Pinang';
+          var parsedTujuan = '';
+          if (rawAsalTujuan) {
+            if (rawAsalTujuan.indexOf(' ke ') !== -1) {
+              var parts = rawAsalTujuan.split(' ke ');
+              parsedAsal = parts[0].trim();
+              parsedTujuan = (parts[1] || '').replace(/\s+PP$/i, '').trim();
+            } else {
+              parsedTujuan = rawAsalTujuan.replace(/\s+PP$/i, '').trim();
+            }
+          }
+          $('#kegiatan-asal').val(parsedAsal);
+          $('#kegiatan-tujuan').val(parsedTujuan);
+          $('input[name=KegiatanAsalTujuan]').val(rawAsalTujuan);
           $('input[name=KegiatanJmlHari]').val(Kegiatan['KegiatanJmlHari'] || '')
           $('#pel-list').empty(); pelIdx = 0;
           var pel = data['Pelaksana'] || [];
@@ -263,13 +435,22 @@
       $('input[name=KegiatanLampiranPrev]').val('')
     })
     $('body').on('click', '.KegiatanInfo', function() {
-      KegiatanID = $(this).attr('data')
-      url="<?php echo base_url();?>manajemen_approval/GetFormInfoKegiatan"
-      url+="?KegiatanID="+KegiatanID
-      $('#modal-xl .modal-body').empty().load(url, function (response, status) {
-        if (status === 'error') show_toast('error', 'Gagal memuat detail pengajuan. Coba lagi.');
-      });
+      var KegiatanID = $(this).attr('data');
+      var url = "<?php echo base_url();?>manajemen_approval/GetFormInfoKegiatan?KegiatanID=" + KegiatanID;
+      var $body = $('#modal-xl .modal-body');
+      $body.html(
+        '<div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">' +
+          '<div class="spinner-border text-primary mb-3" style="width: 2.5rem; height: 2.5rem;" role="status"></div>' +
+          '<div class="font-weight-medium">Memuat rincian &amp; riwayat pengajuan...</div>' +
+        '</div>'
+      );
       $('#modal-xl .modal-footer').hide();
+      $body.load(url, function (response, status) {
+        if (status === 'error') {
+          $body.html('<div class="alert alert-danger m-3">Gagal memuat detail pengajuan. Silakan coba lagi.</div>');
+          show_toast('error', 'Gagal memuat detail pengajuan. Coba lagi.');
+        }
+      });
     })
 
     // Setelah modal ditutup / layar diputar, samakan lebar kolom tabel.

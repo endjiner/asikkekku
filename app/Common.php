@@ -76,3 +76,30 @@ if (! function_exists('legacy_get_post')) {
         return $request->getPost($key) ?? $request->getGet($key);
     }
 }
+
+if (! function_exists('html_escape')) {
+    /**
+     * Pengganti html_escape() CI3 untuk kompatibilitas tampilan.
+     *
+     * @param mixed $var
+     * @param bool  $double_encode
+     * @return mixed
+     */
+    function html_escape($var, bool $double_encode = true)
+    {
+        if (empty($var)) {
+            return $var;
+        }
+
+        if (is_array($var)) {
+            foreach (array_keys($var) as $key) {
+                $var[$key] = html_escape($var[$key], $double_encode);
+            }
+
+            return $var;
+        }
+
+        return htmlspecialchars((string) $var, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', $double_encode);
+    }
+}
+

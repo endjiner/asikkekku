@@ -34,6 +34,11 @@ class Manajemen_approval extends AppController
     {
         $this->menu_kode = '3100';
         $this->Auth->cekMenu($this->menu_kode, 'r');
+        if (! role_can('kegiatan_list')) {
+            $this->Auth->alert_error_akses('Menu Daftar Pengajuan hanya untuk PJ-Kegiatan / Pemohon.');
+            legacy_redirect(base_url('manajemen_approval/list_approval'));
+            return;
+        }
         $this->data['menu_detail'] = $this->data['menu_list'][$this->menu_kode];
         $this->data['menu_all']    = $this->Menu->GetMenuAll();
 
@@ -42,6 +47,9 @@ class Manajemen_approval extends AppController
         $this->data['UserDest']    = $this->M_Manajemen_approval->getUserDestination(1, $defaultJenis);
         $this->data['OutputList']  = $this->M_Manajemen_approval->OutputList();
         $this->data['PegawaiOpts'] = $this->M_Manajemen_approval->PegawaiOptions();
+        $currUid                   = (int) $this->session->get('UserID');
+        $currUserRow               = $this->db->table('tb_users')->select('UserPhone')->getWhere(['UserID' => $currUid])->getRowArray();
+        $this->data['UserPhone']   = $currUserRow['UserPhone'] ?? ($this->session->get('UserPhone') ?? '');
         $this->data['body']        = 'manajemen_approval/ListData';
         $this->data['footer']      = 'manajemen_approval/ListDataFooter';
 
@@ -151,11 +159,18 @@ class Manajemen_approval extends AppController
     {
         $this->menu_kode = '3100';
         $this->Auth->cekMenu($this->menu_kode, 'r');
-        $KegiatanID           = legacy_get_post('KegiatanID');
-        $data['data']         = $this->M_Manajemen_approval->KegiatanGetData($KegiatanID)['Kegiatan'][0];
-        $data['history']      = $this->M_Manajemen_approval->GetFormInfoKegiatan($KegiatanID)['history'];
-        $data['last_status']  = $this->M_Manajemen_approval->GetLastStatus($KegiatanID);
-        $data['sla']          = $this->M_Manajemen_approval->KegiatanSlaEval($KegiatanID);
+        $KegiatanID = (int) legacy_get_post('KegiatanID');
+        if (! $KegiatanID) {
+            return '<div class="alert alert-warning m-3">ID Kegiatan tidak valid.</div>';
+        }
+        $kegData = $this->M_Manajemen_approval->KegiatanGetData($KegiatanID);
+        if (empty($kegData['Kegiatan'])) {
+            return '<div class="alert alert-warning m-3">Data pengajuan tidak ditemukan atau telah dihapus.</div>';
+        }
+        $data['data']        = $kegData['Kegiatan'][0];
+        $data['history']     = $this->M_Manajemen_approval->GetFormInfoKegiatan($KegiatanID)['history'];
+        $data['last_status'] = $this->M_Manajemen_approval->GetLastStatus($KegiatanID);
+        $data['sla']         = $this->M_Manajemen_approval->KegiatanSlaEval($KegiatanID);
 
         return view('manajemen_approval/KegiatanInfo', $data);
     }
@@ -192,8 +207,17 @@ class Manajemen_approval extends AppController
     {
         $this->menu_kode = '3200';
         $this->Auth->cekMenu($this->menu_kode, 'c');
-        $KegiatanID          = legacy_get_post('KegiatanID');
-        $data['data']        = $this->M_Manajemen_approval->KegiatanGetData($KegiatanID)['Kegiatan'][0];
+        $KegiatanID = (int) legacy_get_post('KegiatanID');
+        if (! $KegiatanID) {
+            echo '<div class="alert alert-warning m-3">ID Kegiatan tidak valid.</div>';
+            return;
+        }
+        $kegData = $this->M_Manajemen_approval->KegiatanGetData($KegiatanID);
+        if (empty($kegData['Kegiatan'])) {
+            echo '<div class="alert alert-warning m-3">Data pengajuan tidak ditemukan.</div>';
+            return;
+        }
+        $data['data']        = $kegData['Kegiatan'][0];
         $data['history']     = $this->M_Manajemen_approval->GetFormInfoKegiatan($KegiatanID)['history'];
         $data['last_status'] = $this->M_Manajemen_approval->GetLastStatus($KegiatanID);
         $data['sla']         = $this->M_Manajemen_approval->KegiatanSlaEval($KegiatanID);

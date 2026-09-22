@@ -11,73 +11,52 @@ class M_Frontpage extends BaseModel
 
     public function ListResult()
     {
-        $order_by    = $this->request->getGet('order_by');
-        $order_sort  = $this->request->getGet('order_sort');
         $search_text = trim((string) $this->request->getGet('search_text'));
         if ($search_text === '') {
             return [];
         }
-        $type_result = $this->request->getGet('type_result');
-        $type_search = $this->request->getGet('type_search');
-        $text   = '';
-        $text2  = '';
-        $title  = '';
-        $title2 = '';
-        $filter = '';
-        $sort   = '';
-        $bind   = [];
-        // Halaman publik (tanpa login) -> nilai pencarian WAJIB lewat binding (?),
-        // jangan pernah ditempel langsung ke string SQL. Kolom & arah urut
-        // dipilih dari daftar tetap (whitelist).
+
+        $type_search = trim((string) $this->request->getGet('type_search'));
         $like = '%' . $search_text . '%';
 
-        switch ($type_result) {
-            case ($type_result == 'kuitansi' && $type_search == 'no_sptb'):
-                $text   = 'KegiatanNoSPTJB as text';
-                $text2  = 'KegiatanJudul as text2';
-                $title2 = '"Judul Kegiatan : " as title2';
-                $filter .= 'AND KegiatanNoSPTJB LIKE ? ';
-                $bind[] = $like;
+        $where = '';
+        $bind = [];
+
+        switch ($type_search) {
+            case 'nama_petugas':
+                $where = 'AND k.KegiatanNamaPelaksana LIKE ? ';
+                $bind  = [$like];
                 break;
-            case ($type_result == 'kuitansi' && $type_search == 'no_surat'):
-                $text   = 'KegiatanNoSuratTugas as text';
-                $text2  = 'KegiatanJudul as text2';
-                $title2 = '"Judul Kegiatan : " as title2';
-                $filter .= 'AND KegiatanNoSuratTugas LIKE ? ';
-                $bind[] = $like;
+            case 'judul_kegiatan':
+                $where = 'AND k.KegiatanJudul LIKE ? ';
+                $bind  = [$like];
                 break;
-            case ($type_result == 'kuitansi' && $type_search == 'judul_kegiatan'):
-                $text   = 'KegiatanJudul as text';
-                $text2  = 'KegiatanNamaPelaksana as text2';
-                $title2 = '"Nama Petugas : " as title2';
-                $filter .= 'AND KegiatanJudul LIKE ? ';
-                $bind[] = $like;
+            case 'no_sptb':
+                $where = 'AND k.KegiatanNoSPTJB LIKE ? ';
+                $bind  = [$like];
                 break;
-            case ($type_result == 'kuitansi' && $type_search == 'nama_petugas'):
-                $text   = 'KegiatanNamaPelaksana as text';
-                $text2  = 'KegiatanJudul as text2';
-                $title2 = '"Judul Kegiatan : " as title2';
-                $filter .= 'AND KegiatanNamaPelaksana LIKE ? ';
-                $bind[] = $like;
+            case 'no_surat':
+                $where = 'AND k.KegiatanNoSuratTugas LIKE ? ';
+                $bind  = [$like];
                 break;
             default:
-                $filter .= '';
+                $where = 'AND (
+                    k.KegiatanNamaPelaksana LIKE ?
+                    OR k.KegiatanJudul LIKE ?
+                    OR k.KegiatanNoSPTJB LIKE ?
+                    OR k.KegiatanNoSuratTugas LIKE ?
+                ) ';
+                $bind  = [$like, $like, $like, $like];
                 break;
         }
 
-        $dir = (strtoupper((string) $order_sort) === 'DESC') ? 'DESC' : 'ASC';
-        switch ($order_by) {
-            case 'tanggal':
-                $sort .= "ORDER BY KegiatanTanggal $dir";
-                break;
-            case 'nama':
-                $sort .= "ORDER BY KegiatanNamaPelaksana $dir";
-                break;
-        }
-
-        $sql = "SELECT ROW_NUMBER() OVER (PARTITION BY KegiatanID ) row_num, k.*, $text, $text2, $title2
+        $sql = "SELECT k.*,
+                       k.KegiatanNamaPelaksana AS nama_pelaksana,
+                       k.KegiatanJudul AS judul_kegiatan
                 FROM tb_kegiatan k
-                WHERE k.KegiatanDeletedAt IS NULL " . $filter . $sort;
+                WHERE k.KegiatanDeletedAt IS NULL " . $where . "
+                ORDER BY k.KegiatanTanggal DESC, k.KegiatanID DESC";
+
         $query  = $this->db->query($sql, $bind);
         $result = $query->getResultArray();
 

@@ -136,6 +136,7 @@ $add('dokumen/capUpload', 'Dokumen::capUpload');
 $add('dokumen/gatePpkSet', 'Dokumen::gatePpkSet');
 $add('dokumen/capHapus', 'Dokumen::capHapus');
 $add('dokumen/ttdSimpan', 'Dokumen::ttdSimpan');
+$add('dokumen/simpanUrutan', 'Dokumen::simpanUrutan');
 $add('dokumen/uploadEksternal', 'Dokumen::uploadEksternal');
 $add('dokumen/uploadEksternalHapus', 'Dokumen::uploadEksternalHapus');
 $add('dokumen/ttdUploadSimpan', 'Dokumen::ttdUploadSimpan');
@@ -144,6 +145,7 @@ $add('dokumen/ttdUploadSimpan', 'Dokumen::ttdUploadSimpan');
 // 2 = (:segment) kode + (:num) KegiatanID)
 $dokumenParamRoutes = [
     'panel'               => 1,
+    'unifiedPreview'      => 1,
     'form'                => 2,
     'cetak'                => 2,
     'unduh'               => 2,

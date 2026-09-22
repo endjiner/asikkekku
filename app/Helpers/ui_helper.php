@@ -122,8 +122,8 @@ if (! function_exists('role_features')) {
             case 'SPM':
             case 'PPK':
             case 'PPSPM':
-                // Petugas alur: tinjau antrian + lihat data & laporan (baca saja)
-                return ['dashboard', 'kegiatan_list', 'approval_inbox', 'report'];
+                // Petugas alur/pemeriksa: hanya antrian persetujuan masuk + laporan
+                return ['dashboard', 'approval_inbox', 'report'];
 
             default:
                 return ['dashboard'];

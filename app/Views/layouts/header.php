@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="<?= base_url() ?>assets/template/dist/css/adminlte.min.css">
   <link rel="stylesheet" href="<?= base_url() ?>assets/template/plugins/daterangepicker/daterangepicker.css">
   <link rel="stylesheet" href="<?= base_url() ?>assets/template/plugins/sweetalert2/sweetalert2.min.css">
-  <link rel="stylesheet" href="<?= base_url() ?>assets/css/custom-jtp.css?v=20260911-shell3">
+  <link rel="stylesheet" href="<?= base_url() ?>assets/css/custom-jtp.css?v=20260922-ui1">
   <link rel="stylesheet" href="<?= base_url() ?>assets/template/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="<?= base_url() ?>assets/template/plugins/toastr/toastr.min.css">
 

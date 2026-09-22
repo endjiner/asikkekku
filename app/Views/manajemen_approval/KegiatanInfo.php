@@ -65,6 +65,14 @@ if ($sla && $sla['level'] !== 'draf'):
           <tr><td>Keterangan</td><td><?php echo nl2br($data['KegiatanKeterangan']) ?></td></tr>
           <tr><td>No. Kwitansi</td><td><?php echo nl2br($data['KegiatanNoKwitansi']) ?></td></tr>
           <tr><td>No. SPTJB</td><td><?php echo $data['KegiatanNoSPTJB'] ?></td></tr>
+          <tr>
+            <td>Dokumen Pencairan</td>
+            <td>
+              <a href="<?php echo base_url('dokumen/unified/' . (int)$data['KegiatanID']) ?>" target="_blank" class="btn btn-xs btn-primary font-weight-bold">
+                <i class="fas fa-file-alt mr-1"></i> Preview &amp; Cetak Seluruh Dokumen (Unified Reader)
+              </a>
+            </td>
+          </tr>
         </table>
       </div>
     </div>
@@ -153,21 +161,24 @@ if ($sla && $sla['level'] !== 'draf'):
 
 <?php $kegID = isset($data['KegiatanID']) ? (int) $data['KegiatanID'] : 0; ?>
 <?php if ($kegID): ?>
-<div class="card mt-3" id="dok-panel-card">
-  <div class="card-header bg-gray d-flex align-items-center justify-content-between">
-    <h5 class="mb-0 font-weight-bold">Dokumen Pencairan</h5>
-    <span class="text-sm text-muted" id="dok-panel-stat">memuat&hellip;</span>
+<div class="card mt-3 shadow-none border-0" id="dok-panel-card" style="background: transparent;">
+  <div class="card-header bg-transparent px-0 pt-0 pb-2 d-flex align-items-center justify-content-between border-0">
+    <h5 class="mb-0 font-weight-bold text-dark"><i class="fas fa-layer-group text-primary mr-2"></i>Berkas &amp; Dokumen Pencairan</h5>
+    <span class="text-sm text-muted" id="dok-panel-stat"></span>
   </div>
-  <div class="card-body" id="dok-panel-body">
-    <div class="text-muted text-sm">memuat daftar dokumen&hellip;</div>
+  <div class="card-body p-0" id="dok-panel-body">
+    <div class="d-flex align-items-center justify-content-center py-5 text-muted bg-white rounded-lg border">
+      <div class="spinner-border spinner-border-sm text-primary mr-2" role="status"></div>
+      <span>Memuat pratinjau seluruh dokumen pencairan...</span>
+    </div>
   </div>
 </div>
 <script>
   (function () {
-    var url = '<?php echo base_url() ?>dokumen/panel/<?php echo $kegID ?>';
+    var url = '<?php echo base_url() ?>dokumen/unifiedPreview/<?php echo $kegID ?>';
     var $b = jQuery('#dok-panel-body'), $s = jQuery('#dok-panel-stat');
     jQuery.get(url).done(function (html) { $b.html(html); $s.text(''); })
-      .fail(function () { $b.html('<span class="text-danger text-sm">Gagal memuat daftar dokumen.</span>'); $s.text('gagal'); });
+      .fail(function () { $b.html('<div class="alert alert-danger text-sm m-2">Gagal memuat pratinjau dokumen pencairan.</div>'); $s.text('gagal'); });
   })();
 </script>
 <?php endif ?>
