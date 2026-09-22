@@ -88,11 +88,17 @@
       form.find('input[type="text"]').val('')
       form.find('input[type="password"]').val('')
       form.find('input[type="file"]').val(null)
+      form.find('.custom-file-label').html('Pilih berkas PDF dari komputer...');
       form.find('textarea').val('')
       form.find('select').val(null).trigger('change')
       $('.div_remove_KegiatanLampiranPrev').hide()
       $('#tab-data-pokok-btn').tab('show')
     }
+
+    $('body').on('change', '#KegiatanLampiran', function() {
+      var fileName = $(this).val().split('\\').pop() || $(this).val().split('/').pop();
+      $(this).next('.custom-file-label').html(fileName || 'Pilih berkas PDF dari komputer...');
+    });
     $("form.KegiatanModify").submit(function(e) {
       e.preventDefault(); 
       var form = $(this);
