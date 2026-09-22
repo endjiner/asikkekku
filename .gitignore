@@ -1,3 +1,5 @@
 # app log
 application/logs/*
 .vscode/
+node_modules/
+~$*
