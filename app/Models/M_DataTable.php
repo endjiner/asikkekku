@@ -130,9 +130,14 @@ class M_DataTable extends BaseModel
             : '';
 
         // ---- Eksekusi --------------------------------------------------
+        // Tanpa filter aktif, "difilter" == "total" -- jangan jalankan COUNT
+        // yang sama dua kali (ini kondisi paling umum: buka halaman list
+        // tanpa pencarian).
         $recordsTotal    = (int) $DB->query("SELECT COUNT(*) c FROM $base")->getRow()->c;
-        $recordsFiltered = (int) $DB->query('SELECT COUNT(*) c FROM ' . $base . $whereSql, $bind)->getRow()->c;
-        $data            = $DB->query('SELECT * FROM ' . $base . $whereSql . $orderSql . $limitSql, $bind)->getResultArray();
+        $recordsFiltered = ($whereSql === '')
+            ? $recordsTotal
+            : (int) $DB->query('SELECT COUNT(*) c FROM ' . $base . $whereSql, $bind)->getRow()->c;
+        $data = $DB->query('SELECT * FROM ' . $base . $whereSql . $orderSql . $limitSql, $bind)->getResultArray();
 
         return [
             'draw'            => $dt_draw,

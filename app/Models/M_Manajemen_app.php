@@ -4,20 +4,6 @@ namespace App\Models;
 
 class M_Manajemen_app extends BaseModel
 {
-    private $UserID;
-    private $UserName;
-    private $serGroupID;
-    private $date_time_now;
-
-    public function __construct()
-    {
-        parent::__construct();
-        $this->UserID        = $this->session->get('UserID');
-        $this->UserName      = $this->session->get('UserName');
-        $this->serGroupID    = $this->session->get('serGroupID');
-        $this->date_time_now = date('Y-m-d H:i:s');
-    }
-
     /** SELECT dasar (alias kolom = key DataTables) untuk server-side paging. */
     public function userGroupGetListSql()
     {
@@ -48,15 +34,12 @@ class M_Manajemen_app extends BaseModel
         return $out;
     }
 
-    /** Daftar lengkap tanpa paging -- dipertahankan untuk pemakai lama. */
-    public function userGroupGetList()
-    {
-        $rows = $this->db->query($this->userGroupGetListSql())->getResultArray();
-
-        return $this->userGroupDecorateRows($rows);
-    }
-
-    public function userGroupGetData($UserGroupID = null)
+    /**
+     * @param bool $withMenuAccess false kalau pemanggil cuma butuh daftar
+     *             grup saja (mis. dropdown/tabel) -- lewati query tb_menu_access
+     *             yang tidak dipakai (dipanggil per baris di tb_users_group).
+     */
+    public function userGroupGetData($UserGroupID = null, bool $withMenuAccess = true)
     {
         $filter = '';
         $bind   = [];
@@ -70,9 +53,13 @@ class M_Manajemen_app extends BaseModel
         $query = $this->db->query($sql, $bind);
         $result['user_group'] = $query->getResultArray();
 
-        $sql   = 'SELECT * FROM tb_menu_access WHERE 1=1 ' . $filter;
-        $query = $this->db->query($sql, $bind);
-        $result['menu_access'] = $query->getResultArray();
+        if ($withMenuAccess) {
+            $sql   = 'SELECT * FROM tb_menu_access WHERE 1=1 ' . $filter;
+            $query = $this->db->query($sql, $bind);
+            $result['menu_access'] = $query->getResultArray();
+        } else {
+            $result['menu_access'] = [];
+        }
 
         return $result;
     }
@@ -169,14 +156,6 @@ class M_Manajemen_app extends BaseModel
         }
 
         return $out;
-    }
-
-    /** Daftar lengkap tanpa paging -- dipertahankan untuk pemakai lama. */
-    public function userGetList()
-    {
-        $rows = $this->db->query($this->userGetListSql())->getResultArray();
-
-        return $this->userDecorateRows($rows);
     }
 
     public function userGetData($UserID = null)
@@ -294,17 +273,16 @@ class M_Manajemen_app extends BaseModel
     {
         $this->db->transStart();
 
-        $app_title         = $this->request->getPost('app_title');
-        $app_description   = $this->request->getPost('app_description');
-        $cover_description = $this->request->getPost('cover_description');
-        $link_panduan      = $this->request->getPost('link_panduan');
-        $link_anggaran     = $this->request->getPost('link_anggaran');
-
-        $this->db->table('tb_vrbl')->where('VrblName', 'app_title')->update(['VrblValue' => $app_title]);
-        $this->db->table('tb_vrbl')->where('VrblName', 'app_description')->update(['VrblValue' => $app_description]);
-        $this->db->table('tb_vrbl')->where('VrblName', 'cover_description')->update(['VrblValue' => $cover_description]);
-        $this->db->table('tb_vrbl')->where('VrblName', 'link_panduan')->update(['VrblValue' => $link_panduan]);
-        $this->db->table('tb_vrbl')->where('VrblName', 'link_anggaran')->update(['VrblValue' => $link_anggaran]);
+        $fields = [
+            'app_title'         => $this->request->getPost('app_title'),
+            'app_description'   => $this->request->getPost('app_description'),
+            'cover_description' => $this->request->getPost('cover_description'),
+            'link_panduan'      => $this->request->getPost('link_panduan'),
+            'link_anggaran'     => $this->request->getPost('link_anggaran'),
+        ];
+        foreach ($fields as $name => $val) {
+            $this->db->table('tb_vrbl')->where('VrblName', $name)->update(['VrblValue' => $val]);
+        }
 
         // Ambang batas Peringatan Dini (SLA 4HK). Baris mungkin belum ada
         // di tb_vrbl (tabel tanpa PK), jadi cek dulu lalu insert/update.

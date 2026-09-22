@@ -34,20 +34,11 @@ class M_Profil extends BaseModel
             return ['code' => 404, 'message' => 'Akun tidak ditemukan.'];
         }
 
-        $storedHash = (string) $row['UserPassword'];
-        $validOld   = false;
-        if ($storedHash !== '') {
-            if (strpos($storedHash, '$2') === 0) {
-                $validOld = password_verify($PasswordOld, $storedHash);
-            } else {
-                $validOld = (md5($PasswordOld) === $storedHash);
-            }
-        }
-        if (! $validOld) {
+        if (! M_Login::PasswordMatches($PasswordOld, $row['UserPassword'])) {
             return ['code' => 401, 'message' => 'Password lama salah.'];
         }
 
-        $this->db->table('tb_users')->where('UserID', $UserID)->update(['UserPassword' => md5($PasswordNew)]);
+        $this->db->table('tb_users')->where('UserID', $UserID)->update(['UserPassword' => password_hash($PasswordNew, PASSWORD_DEFAULT)]);
 
         if ($this->db->error()['code'] != 0) {
             return $this->db->error();

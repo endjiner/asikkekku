@@ -43,20 +43,8 @@ class FrontPage extends BaseController
         $rows = $this->M_Frontpage->ListResult();
         $out  = [];
         foreach ($rows as $r) {
-            switch ($r['KegiatanStatus']) {
-                case 'editable':
-                    $badge = '<span class="badge-soft-warning">' . svgico('edit', 13) . ' Draf</span>';
-                    break;
-                case 'Approval OnProgress':
-                    $badge = '<span class="badge-soft-info">' . svgico('clock', 13) . ' Dalam Proses</span>';
-                    break;
-                case 'Approval Selesai':
-                    $badge = '<span class="badge-soft-success">' . svgico('approval-check', 13) . ' Selesai</span>';
-                    break;
-                default:
-                    $badge = '<span class="badge-soft-danger">' . svgico('warning', 13) . ' ' . $r['KegiatanStatus'] . '</span>';
-            }
-            $tgl = !empty($r['KegiatanTanggal']) ? date('d/m/Y', strtotime($r['KegiatanTanggal'])) : '-';
+            $badge = kegiatan_status_badge($r['KegiatanStatus']);
+            $tgl   = !empty($r['KegiatanTanggal']) ? date('d/m/Y', strtotime($r['KegiatanTanggal'])) : '-';
             $out[] = [
                 'KegiatanID'  => $r['KegiatanID'],
                 'nama'        => $r['KegiatanNamaPelaksana'] ?: '-',

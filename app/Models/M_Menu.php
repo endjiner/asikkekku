@@ -28,24 +28,23 @@ class M_Menu extends BaseModel
         return isset($resultMenu[$col]) && $resultMenu[$col] == 1;
     }
 
-    public function GetMenu($parent = 0, $UserGroupID = 0, $menu_arr = [])
+    public function GetMenu($parent = 0, $menu_arr = [])
     {
-        $UserGroupID = $this->UserGroupID;
-        $sql         = "SELECT *
+        $sql   = "SELECT *
                 FROM tb_menu_access ma
                 LEFT JOIN tb_menu m ON ma.MenuID = m.MenuID
                 WHERE m.MenuParent = ?
                 AND ma.UserGroupID = ?
                 AND ma.Status_R = '1'
                 ORDER BY m.MenuOrder";
-        $query = $this->db->query($sql, [(int) $parent, $UserGroupID]);
+        $query = $this->db->query($sql, [(int) $parent, $this->UserGroupID]);
 
         $rowcount = $query->getNumRows();
         if ($rowcount > 0) {
             foreach ($query->getResultArray() as $key => $value) {
                 $menu_arr[$value['MenuKode']] = $value;
                 $c_bfr                        = count($menu_arr);
-                $menu_arr                     = $this->GetMenu($value['MenuID'], $UserGroupID, $menu_arr);
+                $menu_arr                     = $this->GetMenu($value['MenuID'], $menu_arr);
                 $menu_arr[$value['MenuKode']]['parent'] = (count($menu_arr) == $c_bfr) ? false : true;
             }
         }
@@ -79,8 +78,6 @@ class M_Menu extends BaseModel
 
     public function position_list()
     {
-        $names = ['position'];
-
-        return $this->db->table('tb_vrbl')->whereIn('VrblName', $names)->get()->getResultArray();
+        return $this->db->table('tb_vrbl')->whereIn('VrblName', ['position'])->get()->getResultArray();
     }
 }

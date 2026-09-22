@@ -154,7 +154,7 @@ if (! function_exists('menu_feature')) {
             '3300' => 'report',
         ];
 
-        return array_key_exists((string) $menu_kode, $map) ? $map[(string) $menu_kode] : null;
+        return $map[(string) $menu_kode] ?? null;
     }
 }
 
@@ -168,5 +168,32 @@ if (! function_exists('mask_phone')) {
         }
 
         return substr($p, 0, 5) . str_repeat('x', 4) . substr($p, -4);
+    }
+}
+
+if (! function_exists('kegiatan_status_badge')) {
+    /**
+     * Badge HTML untuk tb_kegiatan.KegiatanStatus -- dipakai baik di halaman
+     * publik (FrontPage::ListResult, tanpa login) maupun daftar internal
+     * (M_Manajemen_approval::KegiatanDecorateRows).
+     */
+    function kegiatan_status_badge(string $status, ?string $revisiJenis = null): string
+    {
+        switch ($status) {
+            case 'editable':
+                return '<span class="badge-soft-warning">' . svgico('edit', 13) . ' Draf</span>';
+            case 'Approval OnProgress':
+                return '<span class="badge-soft-info">' . svgico('clock', 13) . ' Dalam Proses</span>';
+            case 'Approval Selesai':
+                return '<span class="badge-soft-success">' . svgico('approval-check', 13) . ' Selesai</span>';
+            case 'Perlu Revisi':
+                $jenis = ($revisiJenis === 'terminate') ? ' &middot; diminta Hentikan Proses' : '';
+
+                return '<span class="badge-soft-warning">' . svgico('edit', 13) . ' Perlu Revisi' . $jenis . '</span>';
+            case 'Dibatalkan':
+                return '<span class="badge-soft-danger">' . svgico('reject', 13) . ' Dibatalkan</span>';
+            default:
+                return '<span class="badge-soft-danger">' . svgico('warning', 13) . ' ' . $status . '</span>';
+        }
     }
 }

@@ -30,9 +30,8 @@ abstract class BaseModel extends Model
     {
         parent::__construct();
 
-        $req            = service('request');
-        $this->request  = ($req instanceof IncomingRequest) ? $req : null;
-        $this->session  = service('session');
-        $this->Auth     = new Auth();
+        $this->request = legacy_incoming_request();
+        $this->session = service('session');
+        $this->Auth    = new Auth();
     }
 }

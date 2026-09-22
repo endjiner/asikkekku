@@ -56,7 +56,6 @@ class MainPage extends BaseController
         } else {
             $UserID       = $result[0]['UserID'];
             $UserGroupID  = $result[0]['UserGroupID'];
-            $UserName     = $result[0]['UserName'];
             $UserFullName = (empty($result[0]['PegawaiNama'])) ? $result[0]['UserFullName'] : $result[0]['PegawaiNama'];
             $UserPosition = $result[0]['UserPosition'];
 

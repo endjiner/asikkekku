@@ -609,10 +609,18 @@ class M_Dokumen extends BaseModel
      *   $row['_pelaksana']      => array nama (untuk axis rangkap)
      *   $row['_pelaksana_rows'] => array baris lengkap (nama, nip, gol, jabatan, rekening, bank, npwp)
      */
+    /** Cache per-instance: kegiatan() dipanggil berkali-kali untuk KegiatanID
+     *  yang sama di banyak titik (akses, autofill, rangkapList, dst.) dalam
+     *  satu request -- sama seperti konst()/ppkMap() di atas. */
+    private $_kegiatanCache = [];
+
     public function kegiatan($KegiatanID)
     {
         $KegiatanID = (int) $KegiatanID;
-        $row        = [];
+        if (array_key_exists($KegiatanID, $this->_kegiatanCache)) {
+            return $this->_kegiatanCache[$KegiatanID];
+        }
+        $row = [];
         if ($KegiatanID > 0 && $this->db->tableExists('tb_kegiatan')) {
             $q   = $this->db->table('tb_kegiatan')->getWhere(['KegiatanID' => $KegiatanID], 1);
             $row = $q ? ($q->getRowArray() ?: []) : [];
@@ -640,6 +648,8 @@ class M_Dokumen extends BaseModel
                 $row['_pelaksana'][] = trim($r['Nama']);
             }
         }
+
+        $this->_kegiatanCache[$KegiatanID] = $row;
 
         return $row;
     }

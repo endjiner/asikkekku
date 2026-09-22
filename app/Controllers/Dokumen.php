@@ -43,6 +43,100 @@ class Dokumen extends AppController
         return $this->M_Dokumen->aksesDokumen($kode, $KegiatanID, $this->session->get('UserPosition'));
     }
 
+    /** ?r= dari querystring, default '-' kalau kosong/tidak ada. */
+    private function _rangkapGet(): string
+    {
+        $rangkap = $this->request->getGet('r');
+
+        return ($rangkap === null || $rangkap === '') ? '-' : $rangkap;
+    }
+
+    /** rangkap dari POST, default '-' kalau kosong/tidak ada. */
+    private function _rangkapPost(): string
+    {
+        return $this->request->getPost('rangkap') ?: '-';
+    }
+
+    /** ?ttd=0|1 dari querystring -- default TRUE (tampilkan ttd), hanya '0' yang mematikan. */
+    private function _withTtdGet(): bool
+    {
+        return $this->request->getGet('ttd') !== '0';
+    }
+
+    /** Resolusi template + show_404() kalau tidak ada. Panggilan: $tpl = $this->_templateOr404($kode); if ($tpl === null) return; */
+    private function _templateOr404($kode)
+    {
+        $tpl = $this->M_Dokumen->template($kode);
+        if (! $tpl) {
+            show_404();
+
+            return null;
+        }
+
+        return $tpl;
+    }
+
+    /** Hak lihat + show_error(403) kalau tidak boleh. Panggilan: if (! $this->_requireLihat($kode, $KegiatanID)) return; */
+    private function _requireLihat($kode, $KegiatanID): bool
+    {
+        if (! $this->_akses($kode, $KegiatanID)['lihat']) {
+            show_error('Dokumen ini belum bisa diakses, menunggu tahap sebelumnya selesai.', 403);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Selektor 'd[]=kode:rangkap' default kalau user tidak memilih apa-apa --
+     * semua dokumen inapp dari bundel unified (dipakai paketUnduh/paketCetak).
+     *
+     * @return list<string>
+     */
+    private function _defaultSelection(int $KegiatanID): array
+    {
+        $bundle = $this->M_Dokumen->buildUnifiedBundle($KegiatanID, $this->session->get('UserPosition'));
+        $sel    = [];
+        foreach ($bundle['items'] as $it) {
+            if ($it['type'] === 'inapp') {
+                $sel[] = $it['kode'] . ':' . $it['rangkap'];
+            }
+        }
+
+        return $sel;
+    }
+
+    /**
+     * Uraikan satu selektor 'kode:rangkap', lalu resolusi template + cek hak
+     * lihat. Null kalau kode/rangkap tidak valid atau tidak boleh diakses
+     * (pemanggil `continue` loop-nya).
+     *
+     * @return array{kode: string, rangkap: string, tpl: array}|null
+     */
+    private function _resolveSelItem(string $s, int $KegiatanID): ?array
+    {
+        $p       = explode(':', $s, 2);
+        $kode    = preg_replace('/[^a-z_]/', '', strtolower($p[0]));
+        $rangkap = isset($p[1]) && $p[1] !== '' ? $p[1] : '-';
+        $tpl     = $this->M_Dokumen->template($kode);
+        if (! $tpl || ! $this->_akses($kode, $KegiatanID)['lihat']) {
+            return null;
+        }
+
+        return ['kode' => $kode, 'rangkap' => $rangkap, 'tpl' => $tpl];
+    }
+
+    /** Boleh menandatangani slot upload ini? ppk -> hanya PPK; ppspm -> hanya PPSPM/SuperAdmin. */
+    private function _uploadSlotBoleh(string $slot, string $pos): bool
+    {
+        if ($slot === 'ppk' && $pos === 'PPK') {
+            return true;
+        }
+
+        return $slot === 'ppspm' && in_array($pos, ['PPSPM', 'SuperAdmin'], true);
+    }
+
     public function panel($KegiatanID = 0)
     {
         $KegiatanID = (int) $KegiatanID;
@@ -68,15 +162,12 @@ class Dokumen extends AppController
 
     public function form($kode = '', $KegiatanID = 0)
     {
-        $tpl = $this->M_Dokumen->template($kode);
-        if (! $tpl) {
-            show_404();
-
+        $tpl = $this->_templateOr404($kode);
+        if ($tpl === null) {
             return;
         }
         $KegiatanID = (int) $KegiatanID;
-        $rangkap    = $this->request->getGet('r');
-        $rangkap    = ($rangkap === null || $rangkap === '') ? '-' : $rangkap;
+        $rangkap    = $this->_rangkapGet();
 
         // Cuma yang memang bagiannya, tepat di tahapnya, boleh mengisi. Kalau
         // dokumennya sudah "waktunya" tapi bukan bagian user ini (mis. tahap
@@ -112,7 +203,7 @@ class Dokumen extends AppController
     {
         $kode       = $this->request->getPost('kode');
         $KegiatanID = (int) $this->request->getPost('KegiatanID');
-        $rangkap    = $this->request->getPost('rangkap') ?: '-';
+        $rangkap    = $this->_rangkapPost();
         $payloadIn  = json_decode($this->request->getPost('payload'), true) ?: [];
 
         $tpl = $this->M_Dokumen->template($kode);
@@ -148,7 +239,7 @@ class Dokumen extends AppController
     {
         $kode       = $this->request->getPost('kode');
         $KegiatanID = (int) $this->request->getPost('KegiatanID');
-        $rangkap    = $this->request->getPost('rangkap') ?: '-';
+        $rangkap    = $this->_rangkapPost();
         $payload    = json_decode($this->request->getPost('payload'), true);
         if (! $this->M_Dokumen->template($kode) || ! is_array($payload)) {
             echo json_encode(['ok' => false, 'msg' => 'Data tidak valid.']);
@@ -166,20 +257,15 @@ class Dokumen extends AppController
 
     public function cetak($kode = '', $KegiatanID = 0)
     {
-        $tpl = $this->M_Dokumen->template($kode);
-        if (! $tpl) {
-            show_404();
-
+        $tpl = $this->_templateOr404($kode);
+        if ($tpl === null) {
             return;
         }
-        if (! $this->_akses($kode, (int) $KegiatanID)['lihat']) {
-            show_error('Dokumen ini belum bisa diakses, menunggu tahap sebelumnya selesai.', 403);
-
+        if (! $this->_requireLihat($kode, (int) $KegiatanID)) {
             return;
         }
-        $rangkap = $this->request->getGet('r');
-        $rangkap = ($rangkap === null || $rangkap === '') ? '-' : $rangkap;
-        $withTtd = ($this->request->getGet('ttd') !== '0');
+        $rangkap = $this->_rangkapGet();
+        $withTtd = $this->_withTtdGet();
 
         return view('dokumen/cetak', [
             'kode'     => $kode,
@@ -243,21 +329,16 @@ class Dokumen extends AppController
     /** Unduh satu dokumen sebagai PDF A4. ?r=&ttd=0|1 */
     public function unduh($kode = '', $KegiatanID = 0)
     {
-        $tpl = $this->M_Dokumen->template($kode);
-        if (! $tpl) {
-            show_404();
-
+        $tpl = $this->_templateOr404($kode);
+        if ($tpl === null) {
             return;
         }
         $KegiatanID = (int) $KegiatanID;
-        if (! $this->_akses($kode, $KegiatanID)['lihat']) {
-            show_error('Dokumen ini belum bisa diakses, menunggu tahap sebelumnya selesai.', 403);
-
+        if (! $this->_requireLihat($kode, $KegiatanID)) {
             return;
         }
-        $rangkap = $this->request->getGet('r');
-        $rangkap = ($rangkap === null || $rangkap === '') ? '-' : $rangkap;
-        $withTtd = ($this->request->getGet('ttd') !== '0');
+        $rangkap = $this->_rangkapGet();
+        $withTtd = $this->_withTtdGet();
 
         $html = $this->_renderHtml($kode, $tpl, $this->M_Dokumen->load($kode, $KegiatanID, $rangkap),
             $this->M_Dokumen->kegiatan($KegiatanID),
@@ -311,17 +392,12 @@ class Dokumen extends AppController
     public function paketUnduh($KegiatanID = 0)
     {
         $KegiatanID = (int) $KegiatanID;
-        $withTtd    = ($this->request->getGet('ttd') !== '0');
+        $withTtd    = $this->_withTtdGet();
         $sel        = (array) $this->request->getGet('d');
         $kegiatan   = $this->M_Dokumen->kegiatan($KegiatanID);
 
         if (empty($sel)) {
-            $bundle = $this->M_Dokumen->buildUnifiedBundle($KegiatanID, $this->session->get('UserPosition'));
-            foreach ($bundle['items'] as $it) {
-                if ($it['type'] === 'inapp') {
-                    $sel[] = $it['kode'] . ':' . $it['rangkap'];
-                }
-            }
+            $sel = $this->_defaultSelection($KegiatanID);
         }
 
         $prevReporting = $this->_quietMpdfWarnings();
@@ -333,13 +409,11 @@ class Dokumen extends AppController
             $n   = 0;
             $isi = [];
             foreach ($sel as $s) {
-                $p       = explode(':', $s, 2);
-                $kode    = preg_replace('/[^a-z_]/', '', strtolower($p[0]));
-                $rangkap = isset($p[1]) && $p[1] !== '' ? $p[1] : '-';
-                $tpl     = $this->M_Dokumen->template($kode);
-                if (! $tpl || ! $this->_akses($kode, $KegiatanID)['lihat']) {
+                $item = $this->_resolveSelItem($s, $KegiatanID);
+                if ($item === null) {
                     continue;
                 }
+                ['kode' => $kode, 'rangkap' => $rangkap, 'tpl' => $tpl] = $item;
                 if ($n > 0) {
                     $mpdf->AddPage();
                 }
@@ -389,27 +463,20 @@ class Dokumen extends AppController
     public function paketCetak($KegiatanID = 0)
     {
         $KegiatanID = (int) $KegiatanID;
-        $withTtd    = ($this->request->getGet('ttd') !== '0');
+        $withTtd    = $this->_withTtdGet();
         $sel        = (array) $this->request->getGet('d');
 
         if (empty($sel)) {
-            $bundle = $this->M_Dokumen->buildUnifiedBundle($KegiatanID, $this->session->get('UserPosition'));
-            foreach ($bundle['items'] as $it) {
-                if ($it['type'] === 'inapp') {
-                    $sel[] = $it['kode'] . ':' . $it['rangkap'];
-                }
-            }
+            $sel = $this->_defaultSelection($KegiatanID);
         }
 
         $items      = [];
         foreach ($sel as $s) {
-            $p       = explode(':', $s, 2);
-            $kode    = preg_replace('/[^a-z_]/', '', strtolower($p[0]));
-            $rangkap = isset($p[1]) && $p[1] !== '' ? $p[1] : '-';
-            $tpl     = $this->M_Dokumen->template($kode);
-            if (! $tpl || ! $this->_akses($kode, $KegiatanID)['lihat']) {
+            $item = $this->_resolveSelItem($s, $KegiatanID);
+            if ($item === null) {
                 continue;
             }
+            ['kode' => $kode, 'rangkap' => $rangkap, 'tpl' => $tpl] = $item;
             $items[] = [
                 'kode'    => $kode,
                 'nama'    => $tpl['nama'],
@@ -522,20 +589,15 @@ class Dokumen extends AppController
     /** Halaman kanvas tanda tangan untuk satu slot. */
     public function ttd($kode = '', $KegiatanID = 0)
     {
-        $tpl = $this->M_Dokumen->template($kode);
-        if (! $tpl) {
-            show_404();
-
+        $tpl = $this->_templateOr404($kode);
+        if ($tpl === null) {
             return;
         }
         $KegiatanID = (int) $KegiatanID;
-        if (! $this->_akses($kode, $KegiatanID)['lihat']) {
-            show_error('Dokumen ini belum bisa diakses, menunggu tahap sebelumnya selesai.', 403);
-
+        if (! $this->_requireLihat($kode, $KegiatanID)) {
             return;
         }
-        $rangkap = $this->request->getGet('r');
-        $rangkap = ($rangkap === null || $rangkap === '') ? '-' : $rangkap;
+        $rangkap = $this->_rangkapGet();
         $slot    = preg_replace('/[^a-z0-9_]/', '', strtolower((string) $this->request->getGet('slot')));
         if (! in_array($slot, (array) $tpl['slot_ttd'], true)) {
             show_error('Slot tanda tangan tidak dikenal.', 400);
@@ -562,7 +624,7 @@ class Dokumen extends AppController
     {
         $kode       = $this->request->getPost('kode');
         $KegiatanID = (int) $this->request->getPost('KegiatanID');
-        $rangkap    = $this->request->getPost('rangkap') ?: '-';
+        $rangkap    = $this->_rangkapPost();
         $slot       = preg_replace('/[^a-z0-9_]/', '', strtolower((string) $this->request->getPost('slot')));
         $tpl        = $this->M_Dokumen->template($kode);
         if (! $tpl || ! in_array($slot, (array) $tpl['slot_ttd'], true)) {
@@ -764,16 +826,8 @@ class Dokumen extends AppController
         $slot = $this->request->getGet('slot') ?: 'ppk';
         $slot = preg_replace('/[^a-z0-9_]/', '', strtolower($slot));
 
-        // Gate: ppk -> hanya PPK, ppspm -> hanya PPSPM atau SuperAdmin
-        $boleh      = false;
-        $bolehPesan = '';
-        if ($slot === 'ppk' && $pos === 'PPK') {
-            $boleh = true;
-        } elseif ($slot === 'ppspm' && in_array($pos, ['PPSPM', 'SuperAdmin'], true)) {
-            $boleh = true;
-        } else {
-            $bolehPesan = 'Anda tidak berwenang menandatangani slot ini.';
-        }
+        $boleh      = $this->_uploadSlotBoleh($slot, $pos);
+        $bolehPesan = $boleh ? '' : 'Anda tidak berwenang menandatangani slot ini.';
 
         $this->data['body']        = 'dokumen/ttd_upload';
         $this->data['row']         = $row;
@@ -794,18 +848,11 @@ class Dokumen extends AppController
         $slot       = $this->request->getPost('slot');
         $slotChk    = preg_replace('/[^a-z0-9_]/', '', strtolower((string) $slot));
 
-        // Gate: ppk -> hanya PPK, ppspm -> hanya PPSPM atau SuperAdmin.
-        // Halaman GET ttdUpload() sudah menampilkan gate ini untuk UI, tapi
-        // endpoint simpan ini tetap harus memvalidasi ulang di server --
-        // kalau tidak, siapa pun yang login bisa POST langsung ke sini dan
-        // "menandatangani" slot PPK/PPSPM memakai akunnya sendiri.
-        $boleh = false;
-        if ($slotChk === 'ppk' && $pos === 'PPK') {
-            $boleh = true;
-        } elseif ($slotChk === 'ppspm' && in_array($pos, ['PPSPM', 'SuperAdmin'], true)) {
-            $boleh = true;
-        }
-        if (! $boleh) {
+        // Halaman GET ttdUpload() sudah menampilkan gate _uploadSlotBoleh()
+        // untuk UI, tapi endpoint simpan ini tetap harus memvalidasi ulang di
+        // server -- kalau tidak, siapa pun yang login bisa POST langsung ke
+        // sini dan "menandatangani" slot PPK/PPSPM memakai akunnya sendiri.
+        if (! $this->_uploadSlotBoleh($slotChk, $pos)) {
             return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'Anda tidak berwenang menandatangani slot ini.']));
         }

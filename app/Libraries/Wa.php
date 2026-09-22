@@ -16,6 +16,12 @@ class Wa
 
     private BaseConnection $db;
 
+    /** Cache per-instance: token()/vrblOff() konstan sepanjang satu run
+     *  send_bulk() (dipanggil per-penerima, atau berkali-kali dari
+     *  EarlyWarningKirim()), sama seperti sla_config() di sla_helper.php. */
+    private ?string $tokenCache = null;
+    private array $vrblOffCache = [];
+
     public function __construct()
     {
         $this->db = db_connect();
@@ -23,21 +29,27 @@ class Wa
 
     private function token(): string
     {
+        if ($this->tokenCache !== null) {
+            return $this->tokenCache;
+        }
         $row = $this->db->table('tb_vrbl')->getWhere(['VrblName' => 'wa_token'])->getRowArray();
         $t   = (! empty($row) && trim((string) $row['VrblValue']) !== '') ? trim($row['VrblValue']) : '';
 
-        return ($t !== '' && $t !== 'ISI_TOKEN_WABLAS_DI_SINI') ? $t : $this->token_default;
+        return $this->tokenCache = ($t !== '' && $t !== 'ISI_TOKEN_WABLAS_DI_SINI') ? $t : $this->token_default;
     }
 
     private function vrblOff(string $name): bool
     {
+        if (array_key_exists($name, $this->vrblOffCache)) {
+            return $this->vrblOffCache[$name];
+        }
         $row = $this->db->table('tb_vrbl')->getWhere(['VrblName' => $name])->getRowArray();
         if (empty($row)) {
-            return false;
+            return $this->vrblOffCache[$name] = false;
         }
         $v = strtolower(trim((string) $row['VrblValue']));
 
-        return in_array($v, ['0', 'off', 'false', 'no', 'tidak', 'nonaktif'], true);
+        return $this->vrblOffCache[$name] = in_array($v, ['0', 'off', 'false', 'no', 'tidak', 'nonaktif'], true);
     }
 
     private function enabled(string $context = 'umum'): bool

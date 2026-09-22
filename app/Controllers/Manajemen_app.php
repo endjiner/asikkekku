@@ -19,14 +19,15 @@ class Manajemen_app extends AppController
     {
         parent::initController($request, $response, $logger);
 
-        $this->menu_kode = '2000';
-        $this->Auth->cekMenu($this->menu_kode, 'r');
+        $this->menu_kode        = '2000';
+        $this->M_Manajemen_app = model(M_Manajemen_app::class);
+        // bootData() sudah cekMenu($this->menu_kode, 'r') di dalamnya -- jangan
+        // panggil dua kali (urutan tetap sama: cekMenu dulu, baru role_can()).
+        $this->bootData($this->menu_kode);
         if (! role_can('manajemen_app')) {
             $this->Auth->alert_error_akses('Menu ini hanya untuk Administrator.');
             legacy_redirect(base_url('dashboard'));
         }
-        $this->M_Manajemen_app = model(M_Manajemen_app::class);
-        $this->bootData($this->menu_kode);
     }
 
     public function index()
@@ -90,7 +91,7 @@ class Manajemen_app extends AppController
         $this->menu_kode = '2200';
         $this->Auth->cekMenu($this->menu_kode, 'r');
         $this->data['menu_detail']   = $this->data['menu_list'][$this->menu_kode];
-        $this->data['userGroupList'] = $this->M_Manajemen_app->userGroupGetData()['user_group'];
+        $this->data['userGroupList'] = $this->M_Manajemen_app->userGroupGetData(null, false)['user_group'];
         $this->data['position']      = $this->Menu->position_list();
         $this->data['body']          = 'manajemen_app/User';
         $this->data['footer']        = 'manajemen_app/UserFooter';
@@ -141,8 +142,10 @@ class Manajemen_app extends AppController
         $this->menu_kode = '2300';
         $this->Auth->cekMenu($this->menu_kode, 'r');
         $this->data['menu_detail'] = $this->data['menu_list'][$this->menu_kode];
-        $this->data['data_list']   = $this->M_Manajemen_app->KonfigurasiAppGetData();
-        $this->data['jenis_list']  = $this->M_Manajemen_app->JenisPengajuanList();
+        // bootData() sudah mengambil KonfigurasiAppGetData() yang sama persis
+        // ke $this->data['AppConfig'] -- jangan query tb_vrbl dua kali.
+        $this->data['data_list']  = $this->data['AppConfig'];
+        $this->data['jenis_list'] = $this->M_Manajemen_app->JenisPengajuanList();
         $jenisSel = (int) $this->request->getGet('jenis');
         if ($jenisSel <= 0 && ! empty($this->data['jenis_list'])) {
             $jenisSel = (int) $this->data['jenis_list'][0]['JenisID'];
@@ -161,30 +164,14 @@ class Manajemen_app extends AppController
         $this->Auth->cekMenu($this->menu_kode, 'u');
         $this->M_Manajemen_app->KonfigurasiAppModify();
 
-        $filename = isset($_FILES['logo_big']['name']) ? $_FILES['logo_big']['name'] : '';
-        if ($filename) {
-            $location      = 'assets/images/logo_baru.png';
-            $imageFileType = pathinfo($location, PATHINFO_EXTENSION);
-            if ($imageFileType === 'png') {
-                move_uploaded_file($_FILES['logo_big']['tmp_name'], $location);
-            }
-        }
-
-        $filename = isset($_FILES['logo_small']['name']) ? $_FILES['logo_small']['name'] : '';
-        if ($filename) {
-            $location      = 'assets/images/logo_baru.png';
-            $imageFileType = pathinfo($location, PATHINFO_EXTENSION);
-            if ($imageFileType === 'png') {
-                move_uploaded_file($_FILES['logo_small']['tmp_name'], $location);
-            }
-        }
-
-        $filename = isset($_FILES['cover_logo']['name']) ? $_FILES['cover_logo']['name'] : '';
-        if ($filename) {
-            $location      = 'assets/images/logo_baru.png';
-            $imageFileType = pathinfo($location, PATHINFO_EXTENSION);
-            if ($imageFileType === 'png') {
-                move_uploaded_file($_FILES['cover_logo']['tmp_name'], $location);
+        foreach (['logo_big', 'logo_small', 'cover_logo'] as $field) {
+            $filename = isset($_FILES[$field]['name']) ? $_FILES[$field]['name'] : '';
+            if ($filename) {
+                $location      = 'assets/images/logo_baru.png';
+                $imageFileType = pathinfo($location, PATHINFO_EXTENSION);
+                if ($imageFileType === 'png') {
+                    move_uploaded_file($_FILES[$field]['tmp_name'], $location);
+                }
             }
         }
 

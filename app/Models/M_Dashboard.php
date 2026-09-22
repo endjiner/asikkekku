@@ -10,16 +10,14 @@ class M_Dashboard extends BaseModel
     private $UserGroupID;
     private $UserName;
     private $UserPosition;
-    private $date_time_now;
 
     public function __construct()
     {
         parent::__construct();
-        $this->UserID        = $this->session->get('UserID');
-        $this->UserGroupID   = $this->session->get('UserGroupID');
-        $this->UserName      = $this->session->get('UserName');
-        $this->UserPosition  = $this->session->get('UserPosition');
-        $this->date_time_now = date('Y-m-d H:i:s');
+        $this->UserID       = $this->session->get('UserID');
+        $this->UserGroupID  = $this->session->get('UserGroupID');
+        $this->UserName     = $this->session->get('UserName');
+        $this->UserPosition = $this->session->get('UserPosition');
     }
 
     /**

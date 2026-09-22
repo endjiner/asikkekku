@@ -1,5 +1,7 @@
 <?php
 
+use CodeIgniter\HTTP\IncomingRequest;
+
 /**
  * Kompatibilitas dengan pola CI3 lama yang dipakai di seluruh aplikasi ini
  * (controller/model/library diporting apa adanya dari CodeIgniter 3).
@@ -74,6 +76,21 @@ if (! function_exists('legacy_get_post')) {
         $request = service('request');
 
         return $request->getPost($key) ?? $request->getGet($key);
+    }
+}
+
+if (! function_exists('legacy_incoming_request')) {
+    /**
+     * service('request') CI3 dulu selalu IncomingRequest ($this->input) --
+     * CI4 juga bisa CLIRequest (spark/cron dari command line). Null kalau
+     * bukan IncomingRequest, dipakai bareng Model/Auth yang cuma perlu
+     * fitur web-request (isAJAX() dkk.).
+     */
+    function legacy_incoming_request(): ?IncomingRequest
+    {
+        $req = service('request');
+
+        return ($req instanceof IncomingRequest) ? $req : null;
     }
 }
 

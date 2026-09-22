@@ -209,11 +209,9 @@
           </div>
 
           <?php
-            $__capDb = db_connect();
-            $capRow = $__capDb->table('tb_vrbl')->getWhere(array('VrblName' => 'dok_cap_image'))->getRowArray();
-            $capPath = !empty($capRow['VrblValue']) ? $capRow['VrblValue'] : '';
-            $gateRow = $__capDb->table('tb_vrbl')->getWhere(array('VrblName' => 'dok_gate_ppk'))->getRowArray();
-            $gateOn  = !empty($gateRow) && in_array(strtolower(trim($gateRow['VrblValue'])), array('1','on','true','ya','aktif'), true);
+            $__mDokumen = model(\App\Models\M_Dokumen::class);
+            $capPath = $__mDokumen->capImagePath();
+            $gateOn  = $__mDokumen->dokGatePpkOn();
           ?>
           <div class="card mt-3">
             <div class="card-header"><h3 class="card-title">Cap Dinas (Dokumen Pencairan)</h3></div>

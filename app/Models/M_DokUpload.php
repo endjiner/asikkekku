@@ -36,15 +36,8 @@ class M_DokUpload extends BaseModel
         'ppspm' => 'PPSPM',
     ];
 
-    private function tbl()
-    {
-        return 'tb_dok_upload';
-    }
-
-    private function tblT()
-    {
-        return 'tb_dok_upload_ttd';
-    }
+    private const TBL     = 'tb_dok_upload';
+    private const TBL_TTD = 'tb_dok_upload_ttd';
 
     /* =========================================================
        UPLOAD
@@ -55,16 +48,16 @@ class M_DokUpload extends BaseModel
         $tipe = strtolower($tipe);
         $hak  = isset(self::HAK_UPLOAD[$peran]) ? self::HAK_UPLOAD[$peran] : ['lain'];
 
-        return in_array($tipe, $hak, true) || in_array('lain', $hak, true) && $tipe === 'lain';
+        return in_array($tipe, $hak, true);
     }
 
     /** Simpan file yang sudah divalidasi. Kembalikan UploadID atau array error. */
     public function simpanUpload($KegiatanID, $tipe, $filePath, $originalName, $fileSize, $userID)
     {
-        if (! $this->db->tableExists($this->tbl())) {
+        if (! $this->db->tableExists(self::TBL)) {
             return ['ok' => false, 'msg' => 'Tabel tb_dok_upload belum ada. Jalankan assets/sql/2026-09-10_dok_upload.sql.'];
         }
-        $this->db->table($this->tbl())->insert([
+        $this->db->table(self::TBL)->insert([
             'KegiatanID'   => (int) $KegiatanID,
             'Tipe'         => strtolower($tipe),
             'FilePath'     => $filePath,
@@ -80,10 +73,10 @@ class M_DokUpload extends BaseModel
     /** Daftar upload aktif untuk satu kegiatan. */
     public function listUpload($KegiatanID)
     {
-        if (! $this->db->tableExists($this->tbl())) {
+        if (! $this->db->tableExists(self::TBL)) {
             return [];
         }
-        $rows = $this->db->table($this->tbl())->where([
+        $rows = $this->db->table(self::TBL)->where([
             'KegiatanID' => (int) $KegiatanID,
             'DeletedAt'  => null,
         ])->orderBy('UploadID', 'ASC')->get()->getResultArray();
@@ -101,10 +94,10 @@ class M_DokUpload extends BaseModel
 
     public function getUpload($UploadID)
     {
-        if (! $this->db->tableExists($this->tbl())) {
+        if (! $this->db->tableExists(self::TBL)) {
             return null;
         }
-        $r = $this->db->table($this->tbl())->getWhere(['UploadID' => (int) $UploadID, 'DeletedAt' => null])->getRowArray();
+        $r = $this->db->table(self::TBL)->getWhere(['UploadID' => (int) $UploadID, 'DeletedAt' => null])->getRowArray();
         if (! $r) {
             return null;
         }
@@ -116,7 +109,7 @@ class M_DokUpload extends BaseModel
 
     public function hapusUpload($UploadID, $userID)
     {
-        if (! $this->db->tableExists($this->tbl())) {
+        if (! $this->db->tableExists(self::TBL)) {
             return ['ok' => false, 'msg' => 'Tabel tidak ada.'];
         }
         $row = $this->getUpload($UploadID);
@@ -127,7 +120,7 @@ class M_DokUpload extends BaseModel
         if (! empty($row['ttd'])) {
             return ['ok' => false, 'msg' => 'File sudah ditandatangani, tidak bisa dihapus.'];
         }
-        $this->db->table($this->tbl())->where('UploadID', (int) $UploadID)->update(['DeletedAt' => date('Y-m-d H:i:s')]);
+        $this->db->table(self::TBL)->where('UploadID', (int) $UploadID)->update(['DeletedAt' => date('Y-m-d H:i:s')]);
 
         return ['ok' => true, 'msg' => 'File dihapus.'];
     }
@@ -138,10 +131,10 @@ class M_DokUpload extends BaseModel
 
     public function ttdAktif($UploadID)
     {
-        if (! $this->db->tableExists($this->tblT())) {
+        if (! $this->db->tableExists(self::TBL_TTD)) {
             return [];
         }
-        $rows = $this->db->table($this->tblT())->where([
+        $rows = $this->db->table(self::TBL_TTD)->where([
             'UploadID'      => (int) $UploadID,
             'InvalidatedAt' => null,
         ])->orderBy('TtdID', 'DESC')->get()->getResultArray();
@@ -157,10 +150,10 @@ class M_DokUpload extends BaseModel
 
     private function ttdAktifBatch(array $ids)
     {
-        if (empty($ids) || ! $this->db->tableExists($this->tblT())) {
+        if (empty($ids) || ! $this->db->tableExists(self::TBL_TTD)) {
             return [];
         }
-        $rows = $this->db->table($this->tblT())->whereIn('UploadID', $ids)->where('InvalidatedAt', null)->get()->getResultArray();
+        $rows = $this->db->table(self::TBL_TTD)->whereIn('UploadID', $ids)->where('InvalidatedAt', null)->get()->getResultArray();
         $out  = [];
         foreach ($rows as $r) {
             if (! isset($out[$r['UploadID']][$r['Slot']])) {
@@ -178,7 +171,7 @@ class M_DokUpload extends BaseModel
      */
     public function simpanTtd($UploadID, $slot, array $pos, $img, array $signer)
     {
-        if (! $this->db->tableExists($this->tblT())) {
+        if (! $this->db->tableExists(self::TBL_TTD)) {
             return ['ok' => false, 'msg' => 'Tabel tb_dok_upload_ttd belum ada.'];
         }
         $slot = preg_replace('/[^a-z0-9_]/', '', strtolower($slot));
@@ -204,10 +197,10 @@ class M_DokUpload extends BaseModel
         $rel = 'assets/ttd_upload/' . $UploadID . '/' . $fname;
 
         // Invalidate TTD lama slot yang sama
-        $this->db->table($this->tblT())->where(['UploadID' => $UploadID, 'Slot' => $slot, 'InvalidatedAt' => null])
+        $this->db->table(self::TBL_TTD)->where(['UploadID' => $UploadID, 'Slot' => $slot, 'InvalidatedAt' => null])
             ->update(['InvalidatedAt' => date('Y-m-d H:i:s')]);
 
-        $this->db->table($this->tblT())->insert([
+        $this->db->table(self::TBL_TTD)->insert([
             'UploadID'     => $UploadID,
             'Slot'         => $slot,
             'Page'         => isset($pos['page']) ? max(1, (int) $pos['page']) : 1,
@@ -247,7 +240,6 @@ class M_DokUpload extends BaseModel
 
         try {
             $fpdi = new \setasign\Fpdi\Fpdi();
-            $fpdi->setSourceFile($pdfPath);
             $pageCount = $fpdi->setSourceFile($pdfPath);
 
             $ttd = $row['ttd']; // keyed by slot

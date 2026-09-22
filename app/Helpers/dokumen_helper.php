@@ -91,9 +91,9 @@ if (! function_exists('tgl_ind')) {
 }
 
 if (! function_exists('dok_e')) {
-    /** Echo aman untuk nilai field pratinjau. */
+    /** Echo aman untuk nilai field pratinjau -- app/Common.php::html_escape() sudah global. */
     function dok_e($v)
     {
-        return htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+        return html_escape((string) $v);
     }
 }

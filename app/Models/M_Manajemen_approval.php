@@ -11,7 +11,6 @@ class M_Manajemen_approval extends BaseModel
     private $UserGroupID;
     private $UserFullName;
     private $UserPosition;
-    private $date_time_now;
 
     /** @var M_Dashboard */
     private $M_Dashboard;
@@ -21,12 +20,11 @@ class M_Manajemen_approval extends BaseModel
         parent::__construct();
         $this->M_Dashboard = model(M_Dashboard::class);
 
-        $this->UserID        = $this->session->get('UserID');
-        $this->UserName      = $this->session->get('UserName');
-        $this->UserGroupID   = $this->session->get('UserGroupID');
-        $this->UserFullName  = $this->session->get('UserFullName');
-        $this->UserPosition  = $this->session->get('UserPosition');
-        $this->date_time_now = date('Y-m-d H:i:s');
+        $this->UserID       = $this->session->get('UserID');
+        $this->UserName     = $this->session->get('UserName');
+        $this->UserGroupID  = $this->session->get('UserGroupID');
+        $this->UserFullName = $this->session->get('UserFullName');
+        $this->UserPosition = $this->session->get('UserPosition');
     }
 
     /* ================= JENIS PENGAJUAN (alur per jenis) ================= */
@@ -222,20 +220,10 @@ class M_Manajemen_approval extends BaseModel
             $value['Action'] = $action;
 
             // Format Status to Soft Badge Pills
-            if ($value['KegiatanStatus'] == 'editable') {
-                $value['KegiatanStatusBadges'] = '<span class="badge-soft-warning">' . svgico('edit', 13) . ' Draf</span>';
-            } elseif ($value['KegiatanStatus'] == 'Approval OnProgress') {
-                $value['KegiatanStatusBadges'] = '<span class="badge-soft-info">' . svgico('clock', 13) . ' Dalam Proses</span>';
-            } elseif ($value['KegiatanStatus'] == 'Approval Selesai') {
-                $value['KegiatanStatusBadges'] = '<span class="badge-soft-success">' . svgico('approval-check', 13) . ' Selesai</span>';
-            } elseif ($value['KegiatanStatus'] == 'Perlu Revisi') {
-                $jenis = (isset($value['RevisiJenis']) && $value['RevisiJenis'] === 'terminate') ? ' &middot; diminta Hentikan Proses' : '';
-                $value['KegiatanStatusBadges'] = '<span class="badge-soft-warning">' . svgico('edit', 13) . ' Perlu Revisi' . $jenis . '</span>';
-            } elseif ($value['KegiatanStatus'] == 'Dibatalkan') {
-                $value['KegiatanStatusBadges'] = '<span class="badge-soft-danger">' . svgico('reject', 13) . ' Dibatalkan</span>';
-            } else {
-                $value['KegiatanStatusBadges'] = '<span class="badge-soft-danger">' . svgico('warning', 13) . ' ' . $value['KegiatanStatus'] . '</span>';
-            }
+            $value['KegiatanStatusBadges'] = kegiatan_status_badge(
+                $value['KegiatanStatus'],
+                $value['RevisiJenis'] ?? null
+            );
 
             // Peringatan Dini 4HK: sisipkan badge SLA untuk pengajuan yang berjalan.
             if ($value['KegiatanStatus'] == 'Approval OnProgress' && isset($slaMap[$value['KegiatanID']])) {
@@ -249,14 +237,6 @@ class M_Manajemen_approval extends BaseModel
         }
 
         return $result;
-    }
-
-    /** Daftar lengkap (tanpa paging) -- dipertahankan untuk pemakai lama. */
-    public function KegiatanGetList()
-    {
-        $rows = $this->db->query($this->KegiatanGetListSql())->getResultArray();
-
-        return $this->KegiatanDecorateRows($rows);
     }
 
     /**
@@ -790,11 +770,18 @@ class M_Manajemen_approval extends BaseModel
     }
 
     /** Daftar lengkap tanpa paging (dipakai dashboard untuk hitung antrian). */
+    /** Cache per-instance: Dashboard memanggil ini 2x per load (hitungan &
+     *  daftar action item) untuk data yang sama dalam satu request. */
+    private $_kegiatanApprovalListCache = null;
+
     public function KegiatanApprovalGetList()
     {
+        if ($this->_kegiatanApprovalListCache !== null) {
+            return $this->_kegiatanApprovalListCache;
+        }
         $rows = $this->db->query($this->KegiatanApprovalGetListSql())->getResultArray();
 
-        return $this->KegiatanApprovalDecorateRows($rows);
+        return $this->_kegiatanApprovalListCache = $this->KegiatanApprovalDecorateRows($rows);
     }
 
     public function ApprovalFormInfoKegiatanSubmit()

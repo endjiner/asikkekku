@@ -71,10 +71,4 @@ abstract class AppController extends BaseController
 
         return $this->data;
     }
-
-    /** Shortcut: user yang login SuperAdmin? */
-    protected function isSuperAdmin(): bool
-    {
-        return $this->session->get('UserPosition') === 'SuperAdmin';
-    }
 }
