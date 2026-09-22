@@ -630,7 +630,8 @@ class Dokumen extends AppController
             $r['url_unduh']     = $base . 'dokumen/unduhBerTtd/' . $r['UploadID'];
         }
         unset($r);
-        $this->response->setContentType('application/json')->setBody(json_encode($list, JSON_UNESCAPED_UNICODE));
+
+        return $this->response->setContentType('application/json')->setBody(json_encode($list, JSON_UNESCAPED_UNICODE));
     }
 
     /** POST: upload PDF eksternal. */
@@ -644,33 +645,25 @@ class Dokumen extends AppController
 
         // Validasi hak upload
         if (! $mDokUpload->bolehUpload($tipe, $pos)) {
-            $this->response->setContentType('application/json')
+            return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'Anda tidak berwenang upload tipe dokumen ini.']));
-
-            return;
         }
 
         // Validasi file
         if (empty($_FILES['file']['tmp_name'])) {
-            $this->response->setContentType('application/json')
+            return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'Tidak ada file yang diunggah.']));
-
-            return;
         }
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime  = finfo_file($finfo, $_FILES['file']['tmp_name']);
         finfo_close($finfo);
         if ($mime !== 'application/pdf') {
-            $this->response->setContentType('application/json')
+            return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'Hanya file PDF yang diizinkan.']));
-
-            return;
         }
         if ($_FILES['file']['size'] > 10 * 1024 * 1024) {
-            $this->response->setContentType('application/json')
+            return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'Ukuran file maksimal 10 MB.']));
-
-            return;
         }
 
         $dir = FCPATH . 'assets/uploads/dok/' . $KegiatanID . '/';
@@ -681,14 +674,13 @@ class Dokumen extends AppController
         $safe  = preg_replace('/[^a-zA-Z0-9_-]/', '_', pathinfo($_FILES['file']['name'], PATHINFO_FILENAME));
         $fname = $tipe . '_' . $safe . '_' . time() . '.' . $ext;
         if (! move_uploaded_file($_FILES['file']['tmp_name'], $dir . $fname)) {
-            $this->response->setContentType('application/json')
+            return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'Gagal memindahkan file.']));
-
-            return;
         }
         $rel = 'assets/uploads/dok/' . $KegiatanID . '/' . $fname;
         $res = $mDokUpload->simpanUpload($KegiatanID, $tipe, $rel, $_FILES['file']['name'], $_FILES['file']['size'], $userID);
-        $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
+
+        return $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
     }
 
     /** POST: hapus upload (hanya uploader / SuperAdmin, sebelum ada TTD). */
@@ -700,19 +692,16 @@ class Dokumen extends AppController
         $pos        = $this->session->get('UserPosition');
         $row        = $mDokUpload->getUpload($UploadID);
         if (! $row) {
-            $this->response->setContentType('application/json')
+            return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'File tidak ditemukan.']));
-
-            return;
         }
         if ($pos !== 'SuperAdmin' && (int) $row['UploadedBy'] !== $userID) {
-            $this->response->setContentType('application/json')
+            return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'Anda tidak berwenang menghapus file ini.']));
-
-            return;
         }
         $res = $mDokUpload->hapusUpload($UploadID, $userID);
-        $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
+
+        return $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
     }
 
     /* ================================================================
@@ -777,10 +766,8 @@ class Dokumen extends AppController
             $boleh = true;
         }
         if (! $boleh) {
-            $this->response->setContentType('application/json')
+            return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'Anda tidak berwenang menandatangani slot ini.']));
-
-            return;
         }
 
         // Decode image base64
@@ -790,10 +777,8 @@ class Dokumen extends AppController
         }
         $img = base64_decode($imgB64);
         if ($img === false) {
-            $this->response->setContentType('application/json')
+            return $this->response->setContentType('application/json')
                 ->setBody(json_encode(['ok' => false, 'msg' => 'Gambar tidak valid.']));
-
-            return;
         }
 
         $pos_arr = [
@@ -811,7 +796,8 @@ class Dokumen extends AppController
         ];
 
         $res = $mDokUpload->simpanTtd($UploadID, $slot, $pos_arr, $img, $signer);
-        $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
+
+        return $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
     }
 
     /** GET: unduh PDF yang sudah di-embed TTD (FPDI overlay). */

@@ -35,16 +35,15 @@ class Cron extends BaseController
 
         $isSuperAdmin = ($this->session->get('UserPosition') === 'SuperAdmin');
         if (! $isSuperAdmin && ($expected === '' || ! hash_equals($expected, $key))) {
-            $this->response
+            return $this->response
                 ->setStatusCode(403)
                 ->setContentType('application/json')
                 ->setBody(json_encode(['status' => 0, 'message' => 'Kunci tidak valid.']));
-
-            return;
         }
 
         $res = $this->M_Manajemen_approval->EarlyWarningKirim('cron');
-        $this->response
+
+        return $this->response
             ->setContentType('application/json')
             ->setBody(json_encode(['status' => 1, 'waktu' => date('Y-m-d H:i:s')] + $res));
     }

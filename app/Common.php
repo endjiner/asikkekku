@@ -31,11 +31,17 @@ if (! function_exists('show_error')) {
      * Pengganti show_error() CI3. CI4 tidak lagi menyediakan fungsi ini
      * (dokumen/uploadan langsung pakai exception untuk error framework),
      * tapi setiap pemanggilan lama di controller aplikasi ini SELALU
-     * diikuti `return;` persis sesudahnya. Jadi cukup menyetel response
-     * yang sedang berjalan (service('response') itu instance yang sama
-     * dengan $this->response controller) lalu balik normal -- `return;`
-     * di kode pemanggil yang menghentikan eksekusinya, sama seperti CI3
-     * (yang berhenti lewat exit() di dalam show_error()).
+     * diikuti `return;` polos (bukan `return $this->response;`) persis
+     * sesudahnya. CodeIgniter::gatherOutput() hanya memakai body dari NILAI
+     * BALIK controller -- kalau baliknya bukan ResponseInterface/string
+     * (termasuk `return;` kosong), body yang di-setBody() di sini akan
+     * DITIMPA balik jadi kosong, terlepas dari `service('response')` adalah
+     * instance yang sama dengan $this->response controller. Makanya pakai
+     * echo (ditangkap ob_start() yang membungkus eksekusi controller),
+     * bukan setBody() -- sama seperti pola echo json_encode(...) yang
+     * dipakai controller lain, dan cocok dengan `return;` polos yang sudah
+     * ada di setiap titik panggil. setStatusCode() aman lewat method chain
+     * biasa karena gatherOutput() cuma menimpa body, bukan status code.
      */
     function show_error(string $message, int $statusCode = 500, string $heading = 'Error'): void
     {
@@ -43,7 +49,8 @@ if (! function_exists('show_error')) {
             'heading' => $heading,
             'message' => $message,
         ]);
-        service('response')->setStatusCode($statusCode)->setBody($body);
+        service('response')->setStatusCode($statusCode);
+        echo $body;
     }
 }
 
