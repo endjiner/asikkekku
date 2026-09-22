@@ -61,13 +61,22 @@
       },
     })
     $('body').on('click', '.KegiatanInfo', function() {
-      KegiatanID = $(this).attr('data')
-      url="<?php echo base_url();?>manajemen_approval/GetApprovalFormInfoKegiatan"
-      url+="?KegiatanID="+KegiatanID
-      $('#modal-xl .modal-body').empty().load(url, function (response, status) {
-        if (status === 'error') show_toast('error', 'Gagal memuat formulir approval. Coba lagi.');
-      });
+      var KegiatanID = $(this).attr('data');
+      var url = "<?php echo base_url();?>manajemen_approval/GetApprovalFormInfoKegiatan?KegiatanID=" + KegiatanID;
+      var $body = $('#modal-xl .modal-body');
+      $body.html(
+        '<div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">' +
+          '<div class="spinner-border text-primary mb-3" style="width: 2.5rem; height: 2.5rem;" role="status"></div>' +
+          '<div class="font-weight-medium">Memuat formulir persetujuan &amp; rincian...</div>' +
+        '</div>'
+      );
       $('#modal-xl .modal-footer').hide();
+      $body.load(url, function (response, status) {
+        if (status === 'error') {
+          $body.html('<div class="alert alert-danger m-3">Gagal memuat formulir persetujuan. Silakan coba lagi.</div>');
+          show_toast('error', 'Gagal memuat formulir approval. Coba lagi.');
+        }
+      });
     })
 
     $(document).on('hidden.bs.modal', '#modal-xl', function() {

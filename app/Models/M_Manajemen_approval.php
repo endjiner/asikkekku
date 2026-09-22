@@ -82,7 +82,7 @@ class M_Manajemen_approval extends BaseModel
         $has  = function ($c) { return $this->db->fieldExists($c, 'tb_users'); };
         $cols = 'UserID, UserName AS NIP, UserFullName AS Nama';
         foreach (['UserGol' => 'Gol', 'UserJabatan' => 'Jabatan', 'UserRekening' => 'Rekening',
-            'UserBank' => 'Bank', 'UserNPWP' => 'NPWP'] as $c => $as) {
+            'UserBank' => 'Bank', 'UserNPWP' => 'NPWP', 'UserPhone' => 'Phone'] as $c => $as) {
             $cols .= $has($c) ? ", $c AS $as" : ", '' AS $as";
         }
 
@@ -130,6 +130,12 @@ class M_Manajemen_approval extends BaseModel
      */
     public function KegiatanGetListSql()
     {
+        // Untuk PJ-Kegiatan: hanya tampilkan pengajuan yang diajukan oleh user yang sedang login
+        $userFilter = '';
+        if ($this->UserPosition === 'PJ-Kegiatan') {
+            $userFilter = ' AND g.KegiatanUserID = ' . (int) $this->UserID;
+        }
+
         // Sertakan info pengembalian terakhir (siapa yang harus merevisi &
         // jenisnya) supaya tombol Revisi/Hentikan Proses bisa ditampilkan.
         return 'SELECT g.KegiatanID AS row_num, g.*,
@@ -142,7 +148,7 @@ class M_Manajemen_approval extends BaseModel
                         FROM tb_approval_history ah2
                         WHERE ah2.KegiatanID = g.KegiatanID
                   )
-                WHERE g.KegiatanDeletedAt IS NULL';
+                WHERE g.KegiatanDeletedAt IS NULL' . $userFilter;
     }
 
     /**

@@ -5,6 +5,10 @@
  * Dimuat via .load() di popup "Informasi Pengajuan".
  */
 $base = base_url();
+$KegiatanID = isset($KegiatanID) ? (int)$KegiatanID : (isset($kegiatan['KegiatanID']) ? (int)$kegiatan['KegiatanID'] : 0);
+$dokumen = isset($dokumen) ? $dokumen : (isset($list) ? $list : []);
+$userPos = isset($userPosition) ? $userPosition : (session('UserPosition') ?: '');
+$canUpload = in_array($userPos, array('PJ-Kegiatan', 'SPP', 'SPM', 'PPSPM', 'SuperAdmin'), true);
 ?>
 <div class="dok-panel">
   <?php if (!empty($dokumen)): ?>

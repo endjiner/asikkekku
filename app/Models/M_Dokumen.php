@@ -59,10 +59,28 @@ class M_Dokumen extends BaseModel
      * (nanti dipindah ke tabel tb_output_petugas yang diedit admin.)
      */
     private $ppk_by_output_default = [
-        '3165.QIA' => ['nama' => 'Netty Desi Margaretta Manullang, S.E', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
-        '3165.BDB' => ['nama' => 'Netty Desi Margaretta Manullang, S.E', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
-        '3165.BKB' => ['nama' => 'Priya Tri Nanda, S.Si.', 'nip' => '19950322 201903 1 004', 'label' => 'PPK II'],
-        '_default' => ['nama' => '', 'nip' => '', 'label' => 'PPK'],
+        // PPK I Balai POM di Pangkal Pinang: Netty Desi Margaretta Manullang, S.E. (19931203 202012 2 001)
+        '3165.AEA'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.BAH'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.BDB'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.BDC'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.BIA'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.BMB'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.PDD'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.QCD'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.QDC'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.QDG'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.QIA'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '3165.QIC'          => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+        '6384.EBA.994.001'  => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
+
+        // PPK II Balai POM di Pangkal Pinang: Priya Tri Nanda, S.Si. (19950322 201903 1 004)
+        '3165.BKB'          => ['nama' => 'Priya Tri Nanda, S.Si.', 'nip' => '19950322 201903 1 004', 'label' => 'PPK II'],
+        '3165.RAB'          => ['nama' => 'Priya Tri Nanda, S.Si.', 'nip' => '19950322 201903 1 004', 'label' => 'PPK II'],
+        '6384.EBA.994.002'  => ['nama' => 'Priya Tri Nanda, S.Si.', 'nip' => '19950322 201903 1 004', 'label' => 'PPK II'],
+        '6384.EBA.956'      => ['nama' => 'Priya Tri Nanda, S.Si.', 'nip' => '19950322 201903 1 004', 'label' => 'PPK II'],
+
+        '_default' => ['nama' => 'Netty Desi Margaretta Manullang, S.E.', 'nip' => '19931203 202012 2 001', 'label' => 'PPK I'],
     ];
     private $ppk_by_output = null;
 
@@ -934,7 +952,7 @@ class M_Dokumen extends BaseModel
         return $out;
     }
 
-    public function save($kode, $KegiatanID, $rangkapKey, array $payload, $userID = null)
+    public function saveDokumen($kode, $KegiatanID, $rangkapKey, array $payload, $userID = null)
     {
         if (! $this->ensureTable()) {
             return ['ok' => false, 'msg' => 'Tabel tb_dokumen belum ada. Jalankan assets/sql/2026-09-04_dokumen.sql.'];
@@ -1223,7 +1241,7 @@ class M_Dokumen extends BaseModel
         foreach ($auto as $k => $v) {
             $saved[$k] = $v;
         }
-        $this->save('kartu_kendali', $KegiatanID, '-', $saved, null);
+        $this->saveDokumen('kartu_kendali', $KegiatanID, '-', $saved, null);
     }
 
     /** Beberapa kegiatan terbaru untuk pemilih. */
@@ -1236,5 +1254,171 @@ class M_Dokumen extends BaseModel
         return $this->db->table('tb_kegiatan')->select('KegiatanID, KegiatanNoSuratTugas, KegiatanJudul, KegiatanTanggal, KegiatanNamaPelaksana')
             ->where('KegiatanDeletedAt IS NULL', null, false)
             ->orderBy('KegiatanID', 'DESC')->get((int) $limit)->getResultArray();
+    }
+
+    /* ======================================================================
+       UNIFIED BUNDLE & DOKUMEN REORDER
+       ====================================================================== */
+
+    /** Ambil urutan kustom dokumen untuk suatu kegiatan dari tb_vrbl. */
+    public function getDokumenUrutan($KegiatanID)
+    {
+        $KegiatanID = (int) $KegiatanID;
+        if ($KegiatanID <= 0 || ! $this->db->tableExists('tb_vrbl')) {
+            return [];
+        }
+        $row = $this->db->table('tb_vrbl')->getWhere(['VrblName' => 'dok_urutan_' . $KegiatanID])->getRowArray();
+        if ($row && ! empty($row['VrblValue'])) {
+            $arr = json_decode($row['VrblValue'], true);
+            if (is_array($arr)) {
+                return $arr;
+            }
+        }
+
+        return [];
+    }
+
+    /** Simpan urutan kustom dokumen untuk suatu kegiatan ke tb_vrbl. */
+    public function saveDokumenUrutan($KegiatanID, array $keys)
+    {
+        $KegiatanID = (int) $KegiatanID;
+        if ($KegiatanID <= 0) {
+            return ['ok' => false, 'msg' => 'ID Kegiatan tidak valid.'];
+        }
+        $clean = array_values(array_filter(array_map('trim', $keys)));
+        $val   = json_encode($clean, JSON_UNESCAPED_UNICODE);
+        $name  = 'dok_urutan_' . $KegiatanID;
+
+        $ada = $this->db->table('tb_vrbl')->getWhere(['VrblName' => $name])->getRowArray();
+        if ($ada) {
+            $this->db->table('tb_vrbl')->where('VrblName', $name)->update(['VrblValue' => $val]);
+        } else {
+            $this->db->table('tb_vrbl')->insert(['VrblName' => $name, 'VrblValue' => $val]);
+        }
+
+        return ['ok' => true, 'msg' => 'Urutan dokumen berhasil disimpan.'];
+    }
+
+    /**
+     * Membangun bundle pratinjau terpadu (seluruh dokumen in-app + berkas upload).
+     * Disertai urutan yang tersimpan (jika ada) dan metadata lengkap untuk in-page preview reader.
+     */
+    public function buildUnifiedBundle($KegiatanID, $viewerPosition = null)
+    {
+        $KegiatanID = (int) $KegiatanID;
+        $kegiatan   = $this->kegiatan($KegiatanID);
+        if (empty($kegiatan)) {
+            return ['kegiatan' => [], 'items' => [], 'total' => 0];
+        }
+
+        $jenisID      = isset($kegiatan['KegiatanJenisID']) && (int) $kegiatan['KegiatanJenisID'] > 0 ? (int) $kegiatan['KegiatanJenisID'] : 1;
+        $templates    = $this->templatesForJenis($jenisID);
+        $rangkapNames = $this->rangkapList($KegiatanID);
+
+        $iconMap = [
+            'kartu_kendali'  => 'clipboard-check',
+            'lembar_periksa' => 'tasks',
+            'kwitansi'       => 'receipt',
+            'spd'            => 'car',
+            'nominatif'      => 'users',
+            'riil'           => 'file-invoice-dollar',
+            'sptjb'          => 'file-contract',
+        ];
+
+        $items = [];
+
+        // 1. Dokumen In-App (Kwitansi, SPD, Nominatif, Riil, SPTJB, Kartu Kendali)
+        foreach ($templates as $kode => $tpl) {
+            $perPenerima = (isset($tpl['rangkap']) && $tpl['rangkap'] === 'per_penerima');
+            $keys        = $perPenerima ? ($rangkapNames ?: []) : ['-'];
+
+            foreach ($keys as $rk) {
+                $itemKey  = 'doc:' . $kode . ':' . $rk;
+                $subTitle = ($rk !== '-') ? $rk : '';
+                $fullNama = $tpl['nama'] . ($subTitle !== '' ? ' (' . $subTitle . ')' : '');
+                $akses    = ($viewerPosition !== null) ? $this->aksesDokumen($kode, $KegiatanID, $viewerPosition) : ['lihat' => true, 'isi' => true];
+
+                $items[$itemKey] = [
+                    'key'         => $itemKey,
+                    'type'        => 'inapp',
+                    'kode'        => $kode,
+                    'rangkap'     => $rk,
+                    'nama'        => $fullNama,
+                    'short_title' => $tpl['nama'],
+                    'sub_title'   => $subTitle,
+                    'icon'        => isset($iconMap[$kode]) ? $iconMap[$kode] : 'file-alt',
+                    'tpl'         => $tpl,
+                    'd'           => $this->load($kode, $KegiatanID, $rk),
+                    'ttd'         => $this->ttdAktif($KegiatanID, $kode, $rk),
+                    'boleh_lihat' => $akses['lihat'],
+                    'boleh_isi'   => $akses['isi'],
+                    'url_cetak'   => base_url('dokumen/cetak/' . $kode . '/' . $KegiatanID . ($rk !== '-' ? '?r=' . rawurlencode($rk) : '')),
+                    'url_unduh'   => base_url('dokumen/unduh/' . $kode . '/' . $KegiatanID . ($rk !== '-' ? '?r=' . rawurlencode($rk) : '')),
+                ];
+            }
+        }
+
+        // 2. Berkas Lampiran Utama Surat Tugas (jika diunggah saat buat pengajuan)
+        if (! empty($kegiatan['KegiatanLampiran'])) {
+            $lampKey = 'lampiran_st';
+            $items[$lampKey] = [
+                'key'         => $lampKey,
+                'type'        => 'upload',
+                'tipe_kode'   => 'st_lampiran',
+                'nama'        => 'Lampiran Surat Tugas (' . $kegiatan['KegiatanLampiran'] . ')',
+                'short_title' => 'Lampiran Surat Tugas',
+                'sub_title'   => $kegiatan['KegiatanLampiran'],
+                'file_url'    => base_url('assets/lampiran/' . $kegiatan['KegiatanLampiran']),
+                'icon'        => 'paperclip',
+                'boleh_lihat' => true,
+                'boleh_isi'   => false,
+            ];
+        }
+
+        // 3. Berkas Upload Eksternal (LPD, SPPD, SPM, SPP, dll.)
+        $mDokUpload = model(M_DokUpload::class);
+        $uploads    = $mDokUpload->listUpload($KegiatanID);
+        foreach ($uploads as $u) {
+            $upKey = 'upload:' . $u['UploadID'];
+            $items[$upKey] = [
+                'key'         => $upKey,
+                'type'        => 'upload',
+                'upload_id'   => $u['UploadID'],
+                'tipe_kode'   => $u['Tipe'],
+                'nama'        => $u['label'] . ' - ' . $u['OriginalName'],
+                'short_title' => $u['label'],
+                'sub_title'   => $u['OriginalName'],
+                'file_url'    => base_url($u['FilePath']),
+                'icon'        => 'file-pdf',
+                'ttd'         => isset($u['ttd']) ? $u['ttd'] : [],
+                'url_ttd_ppk' => base_url('dokumen/ttdUpload/' . $u['UploadID'] . '?slot=ppk'),
+                'url_ttd_ppspm' => base_url('dokumen/ttdUpload/' . $u['UploadID'] . '?slot=ppspm'),
+                'boleh_lihat' => true,
+                'boleh_isi'   => false,
+            ];
+        }
+
+        // 4. Susun ulang sesuai urutan kustom yang tersimpan (jika ada)
+        $customOrder = $this->getDokumenUrutan($KegiatanID);
+        if (! empty($customOrder)) {
+            $ordered = [];
+            foreach ($customOrder as $k) {
+                if (isset($items[$k])) {
+                    $ordered[$k] = $items[$k];
+                    unset($items[$k]);
+                }
+            }
+            // Tambahkan sisa item baru yang belum ada di custom order ke urutan paling bawah
+            foreach ($items as $k => $item) {
+                $ordered[$k] = $item;
+            }
+            $items = $ordered;
+        }
+
+        return [
+            'kegiatan' => $kegiatan,
+            'items'    => array_values($items),
+            'total'    => count($items),
+        ];
     }
 }

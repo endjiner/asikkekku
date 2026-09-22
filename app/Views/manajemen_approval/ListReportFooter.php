@@ -263,7 +263,7 @@
                         return {
                           margin: [36, 8, 36, 0],
                           columns: [
-                            { text: 'Dihasilkan oleh Sistem ASIKKEKKU V.2', italics: true, fontSize: 7, color: '#64748b' },
+                            { text: 'Dihasilkan oleh Sistem ASIKKEKKU', italics: true, fontSize: 7, color: '#64748b' },
                             { text: 'Halaman ' + currentPage + ' dari ' + pageCount, alignment: 'right', fontSize: 7, color: '#64748b' }
                           ]
                         };

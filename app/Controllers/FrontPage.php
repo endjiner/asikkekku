@@ -56,13 +56,15 @@ class FrontPage extends BaseController
                 default:
                     $badge = '<span class="badge-soft-danger">' . svgico('warning', 13) . ' ' . $r['KegiatanStatus'] . '</span>';
             }
+            $tgl = !empty($r['KegiatanTanggal']) ? date('d/m/Y', strtotime($r['KegiatanTanggal'])) : '-';
             $out[] = [
-                'KegiatanID' => $r['KegiatanID'],
-                'nama'       => $r['text'],
-                'kegiatan'   => trim($r['title2'] . $r['text2']),
-                'sptjb'      => $r['KegiatanNoSPTJB'] !== '' ? $r['KegiatanNoSPTJB'] : '-',
-                'status'     => $badge,
-                'status_raw' => $r['KegiatanStatus'],
+                'KegiatanID'  => $r['KegiatanID'],
+                'nama'        => $r['KegiatanNamaPelaksana'] ?: '-',
+                'kegiatan'    => $r['KegiatanJudul'] ?: '-',
+                'sptjb'       => $r['KegiatanNoSPTJB'] !== '' ? $r['KegiatanNoSPTJB'] : '-',
+                'tanggal'     => $tgl,
+                'status'      => $badge,
+                'status_raw'  => $r['KegiatanStatus'],
             ];
         }
         return $this->response->setContentType('application/json')->setBody(json_encode(['data' => $out]));

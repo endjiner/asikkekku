@@ -160,7 +160,7 @@ class Dokumen extends AppController
 
             return;
         }
-        $res = $this->M_Dokumen->save($kode, $KegiatanID, $rangkap, $payload, $this->data['UserID']);
+        $res = $this->M_Dokumen->saveDokumen($kode, $KegiatanID, $rangkap, $payload, $this->data['UserID']);
         echo json_encode($res);
     }
 
@@ -287,12 +287,42 @@ class Dokumen extends AppController
     }
 
     /** Unduh beberapa dokumen sebagai SATU PDF. ?d[]=kode:rangkap & ttd=0|1 */
+    public function unifiedPreview($KegiatanID = 0)
+    {
+        $KegiatanID = (int) $KegiatanID;
+        $bundle     = $this->M_Dokumen->buildUnifiedBundle($KegiatanID, $this->session->get('UserPosition'));
+        $bundle['KegiatanID'] = $KegiatanID;
+        $bundle['userPos']    = $this->session->get('UserPosition');
+        $bundle['AppConfig']  = isset($this->data['AppConfig']) ? $this->data['AppConfig'] : [];
+
+        return view('dokumen/unified_preview', $bundle);
+    }
+
+    public function simpanUrutan()
+    {
+        $KegiatanID = (int) $this->request->getPost('KegiatanID');
+        $order      = (array) $this->request->getPost('order');
+        $res        = $this->M_Dokumen->saveDokumenUrutan($KegiatanID, $order);
+
+        return $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
+    }
+
+    /** Unduh beberapa dokumen sebagai SATU PDF. ?d[]=kode:rangkap & ttd=0|1 */
     public function paketUnduh($KegiatanID = 0)
     {
         $KegiatanID = (int) $KegiatanID;
         $withTtd    = ($this->request->getGet('ttd') !== '0');
         $sel        = (array) $this->request->getGet('d');
         $kegiatan   = $this->M_Dokumen->kegiatan($KegiatanID);
+
+        if (empty($sel)) {
+            $bundle = $this->M_Dokumen->buildUnifiedBundle($KegiatanID, $this->session->get('UserPosition'));
+            foreach ($bundle['items'] as $it) {
+                if ($it['type'] === 'inapp') {
+                    $sel[] = $it['kode'] . ':' . $it['rangkap'];
+                }
+            }
+        }
 
         $prevReporting = $this->_quietMpdfWarnings();
         $pdf  = null;
@@ -361,6 +391,16 @@ class Dokumen extends AppController
         $KegiatanID = (int) $KegiatanID;
         $withTtd    = ($this->request->getGet('ttd') !== '0');
         $sel        = (array) $this->request->getGet('d');
+
+        if (empty($sel)) {
+            $bundle = $this->M_Dokumen->buildUnifiedBundle($KegiatanID, $this->session->get('UserPosition'));
+            foreach ($bundle['items'] as $it) {
+                if ($it['type'] === 'inapp') {
+                    $sel[] = $it['kode'] . ':' . $it['rangkap'];
+                }
+            }
+        }
+
         $items      = [];
         foreach ($sel as $s) {
             $p       = explode(':', $s, 2);
