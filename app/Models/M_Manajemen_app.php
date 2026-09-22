@@ -235,7 +235,11 @@ class M_Manajemen_app extends BaseModel
 
                 return ['code' => 1, 'message' => 'Verifikasi kata sandi baru tidak cocok.'];
             }
-            $data['UserPassword'] = md5($UserPassword);
+            // md5() lama gampang di-brute-force; M_Login::PasswordMatches() sudah
+            // membedakan hash bcrypt (prefiks '$2') dari md5 lama, jadi password
+            // BARU yang di-set lewat sini aman langsung pakai bcrypt -- tidak
+            // perlu "upgrade on login" seperti hash lama yang sudah kadung ada.
+            $data['UserPassword'] = password_hash($UserPassword, PASSWORD_DEFAULT);
         }
 
         if ($UserID == '') {
