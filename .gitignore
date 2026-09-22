@@ -1,5 +1,18 @@
-# app log
-application/logs/*
+# CI4 writable/: kontennya di-generate saat aplikasi jalan (log, cache,
+# session, debugbar, file upload contoh bawaan). Struktur folder + .htaccess
+# tetap dilacak supaya deploy hanya-upload (tanpa build step) tetap jalan.
+writable/cache/*
+writable/logs/*
+writable/session/*
+writable/debugbar/*
+writable/uploads/*
+!writable/**/index.html
+!writable/.htaccess
+
+# Jangan commit .env kalau dibuat lokal (bisa berisi rahasia produksi).
+# Default aplikasi (app/Config/*.php) tetap jalan tanpa berkas ini.
+.env
+
 .vscode/
 node_modules/
 ~$*

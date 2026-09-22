@@ -1,20 +1,19 @@
 <?php
+
 /**
  * This file is part of FPDI
  *
  * @package   setasign\Fpdi
- * @copyright Copyright (c) 2018 Setasign - Jan Slabon (https://www.setasign.com)
+ * @copyright Copyright (c) 2026 Setasign GmbH & Co. KG (https://www.setasign.com)
  * @license   http://opensource.org/licenses/mit-license The MIT License
-  */
+ */
 
 namespace setasign\Fpdi;
 
 /**
  * Trait FpdfTplTrait
  *
- * This class adds a templating feature to tFPDF.
- *
- * @package setasign\Fpdi
+ * This trait adds a templating feature to FPDF and tFPDF.
  */
 trait FpdfTplTrait
 {
@@ -61,7 +60,8 @@ trait FpdfTplTrait
 
         $size = $this->_getpagesize($size);
 
-        if ($orientation != $this->CurOrientation
+        if (
+            $orientation != $this->CurOrientation
             || $size[0] != $this->CurPageSize[0]
             || $size[1] != $this->CurPageSize[1]
         ) {
@@ -86,8 +86,8 @@ trait FpdfTplTrait
     /**
      * Draws a template onto the page or another template.
      *
-     * Omit one of the size parameters (width, height) to calculate the other one automatically in view to the aspect
-     * ratio.
+     * Give only one of the size parameters (width, height) to calculate the other one automatically in view to the
+     * aspect ratio.
      *
      * @param mixed $tpl The template id
      * @param array|float|int $x The abscissa of upper-left corner. Alternatively you could use an assoc array
@@ -109,7 +109,7 @@ trait FpdfTplTrait
             unset($x['tpl']);
             \extract($x, EXTR_IF_EXISTS);
             /** @noinspection NotOptimalIfConditionsInspection */
-            /** @noinspection CallableParameterUseCaseInTypeContextInspection */
+            /** @phpstan-ignore function.alreadyNarrowedType  */
             if (\is_array($x)) {
                 $x = 0;
             }
@@ -141,8 +141,8 @@ trait FpdfTplTrait
     /**
      * Get the size of a template.
      *
-     * Omit one of the size parameters (width, height) to calculate the other one automatically in view to the aspect
-     * ratio.
+     * Give only one of the size parameters (width, height) to calculate the other one automatically in view to the
+     * aspect ratio.
      *
      * @param mixed $tpl The template id
      * @param float|int|null $width The width.
@@ -234,7 +234,9 @@ trait FpdfTplTrait
                 'lMargin' => $this->lMargin,
                 'rMargin' => $this->rMargin,
                 'h' => $this->h,
+                'hPt' => $this->hPt,
                 'w' => $this->w,
+                'wPt' => $this->wPt,
                 'FontFamily' => $this->FontFamily,
                 'FontStyle' => $this->FontStyle,
                 'FontSizePt' => $this->FontSizePt,
@@ -251,7 +253,9 @@ trait FpdfTplTrait
         $this->currentTemplateId = $templateId;
 
         $this->h = $height;
+        $this->hPt = $height * $this->k;
         $this->w = $width;
+        $this->wPt = $width * $this->k;
 
         $this->SetXY($this->lMargin, $this->tMargin);
         $this->SetRightMargin($this->w - $width + $this->rMargin);
@@ -266,7 +270,7 @@ trait FpdfTplTrait
      */
     public function endTemplate()
     {
-        if (null === $this->currentTemplateId) {
+        if ($this->currentTemplateId === null) {
             return false;
         }
 
@@ -279,7 +283,9 @@ trait FpdfTplTrait
         $this->lMargin = $state['lMargin'];
         $this->rMargin = $state['rMargin'];
         $this->h = $state['h'];
+        $this->hPt = $state['hPt'];
         $this->w = $state['w'];
+        $this->wPt = $state['wPt'];
         $this->SetAutoPageBreak($state['AutoPageBreak'], $state['bMargin']);
 
         $this->FontFamily = $state['FontFamily'];
@@ -296,7 +302,7 @@ trait FpdfTplTrait
 
         $fontKey = $this->FontFamily . $this->FontStyle;
         if ($fontKey) {
-            $this->CurrentFont =& $this->fonts[$fontKey];
+            $this->CurrentFont = $this->fonts[$fontKey];
         } else {
             unset($this->CurrentFont);
         }
@@ -406,9 +412,6 @@ trait FpdfTplTrait
         }
     }
 
-    /**
-     * @inheritdoc
-     */
     protected function _putimages()
     {
         parent::_putimages();
@@ -418,7 +421,11 @@ trait FpdfTplTrait
             $this->templates[$key]['objectNumber'] = $this->n;
 
             $this->_put('<</Type /XObject /Subtype /Form /FormType 1');
-            $this->_put(\sprintf('/BBox[0 0 %.2F %.2F]', $template['width'] * $this->k, $template['height'] * $this->k));
+            $this->_put(\sprintf(
+                '/BBox[0 0 %.2F %.2F]',
+                $template['width'] * $this->k,
+                $template['height'] * $this->k
+            ));
             $this->_put('/Resources 2 0 R'); // default resources dictionary of FPDF
 
             if ($this->compress) {

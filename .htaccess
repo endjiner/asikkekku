@@ -1,15 +1,59 @@
+# ASIKKEKKU — front controller (index.php) ada di ROOT repo, bukan public/,
+# supaya cocok dengan hosting bersama yang document root-nya sudah terpasang
+# ke akun (tidak bisa diarahkan ke sub-folder) — sama seperti deployment CI3
+# sebelumnya. Konsekuensinya, folder yang pada instalasi CI4 standar berada
+# DI LUAR document root (app/, writable/, vendor/, tests/) sekarang ada DI
+# DALAM-nya, jadi harus diblokir eksplisit di bawah ini.
+#
 # CI_ENV tidak dipaksa lagi -> index.php mendeteksi otomatis:
 #   host localhost/127.0.0.1/192.168.* -> development (error tampil)
 #   host lain (produksi)              -> production  (error disembunyikan)
 # Untuk memaksa manual, hidupkan salah satu baris berikut:
 # SetEnv CI_ENV development
 # SetEnv CI_ENV production
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php/$1 [L]
+
+# Nonaktifkan listing direktori.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+	Options +FollowSymlinks
+	RewriteEngine On
+
+	# Blokir akses langsung ke folder aplikasi/dependensi & berkas sensitif.
+	# GDRIVE/ & asikkekku/ cuma arsip dokumen contoh/riwayat -- tidak pernah
+	# ditautkan dari aplikasi, tak ada alasan untuk publik.
+	RewriteRule ^(app|writable|vendor|tests|GDRIVE|asikkekku)(/|$) - [F,L]
+	RewriteRule (^|/)\.(?!well-known) - [F,L]
+	RewriteRule ^(composer\.(json|lock)|spark|phpunit\.dist\.xml|env|preload\.php|asikkekku_recovery\.sql)$ - [F,L]
+
+	# Redirect Trailing Slashes...
+	RewriteCond %{REQUEST_FILENAME} !-d
+	RewriteCond %{REQUEST_URI} (.+)/$
+	RewriteRule ^ %1 [L,R=301]
+
+	# Checks to see if the user is attempting to access a valid file,
+	# such as an image or css document, if this isn't true it sends the
+	# request to the front controller, index.php
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+	RewriteRule ^([\s\S]*)$ index.php/$1 [L,NC,QSA]
+
+	# Ensure Authorization header is passed along
+	RewriteCond %{HTTP:Authorization} .
+	RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+	# If we don't have mod_rewrite installed, all 404's
+	# can be sent to index.php, and everything works as normal.
+	ErrorDocument 404 index.php
+</IfModule>
 
 # Handler LiteSpeed khusus hosting produksi — dinonaktifkan untuk Apache/XAMPP lokal.
 # <FilesMatch "\.(php4|php5|php3|php2|php|phtml)$">
 # SetHandler application/x-lsphp73
 # </FilesMatch>
+
+# Disable server signature start
+ServerSignature Off
+# Disable server signature end

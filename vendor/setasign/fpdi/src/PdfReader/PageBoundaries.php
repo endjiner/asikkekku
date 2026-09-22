@@ -1,18 +1,17 @@
 <?php
+
 /**
  * This file is part of FPDI
  *
  * @package   setasign\Fpdi
- * @copyright Copyright (c) 2018 Setasign - Jan Slabon (https://www.setasign.com)
+ * @copyright Copyright (c) 2026 Setasign GmbH & Co. KG (https://www.setasign.com)
  * @license   http://opensource.org/licenses/mit-license The MIT License
-  */
+ */
 
 namespace setasign\Fpdi\PdfReader;
 
 /**
  * An abstract class for page boundary constants and some helper methods
- *
- * @package setasign\Fpdi\PdfReader
  */
 abstract class PageBoundaries
 {
