@@ -68,11 +68,10 @@ class Manajemen_approval extends AppController
         }
         $JenisID = (int) $this->request->getPost('JenisID');
         if (! $this->M_Manajemen_approval->JenisIsValid($JenisID)) {
-            echo json_encode([]);
-
-            return;
+            return $this->jsonResponse([]);
         }
-        echo json_encode($this->M_Manajemen_approval->getUserDestination(1, $JenisID));
+
+        return $this->jsonResponse($this->M_Manajemen_approval->getUserDestination(1, $JenisID));
     }
 
     public function KegiatanGetList()
@@ -85,7 +84,8 @@ class Manajemen_approval extends AppController
         $sql            = $this->M_Manajemen_approval->KegiatanGetListSql();
         $output         = model(M_DataTable::class)->dtTableGetList($sql);
         $output['data'] = $this->M_Manajemen_approval->KegiatanDecorateRows($output['data']);
-        echo json_encode($output);
+
+        return $this->jsonResponse($output);
     }
 
     public function KegiatanGetData()
@@ -94,7 +94,8 @@ class Manajemen_approval extends AppController
         $this->Auth->cekMenu($this->menu_kode, 'r');
         $KegiatanID = legacy_get_post('KegiatanID');
         $data       = $this->M_Manajemen_approval->KegiatanGetData($KegiatanID);
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     public function KegiatanModify()
@@ -129,7 +130,8 @@ class Manajemen_approval extends AppController
                 move_uploaded_file($f['tmp_name'], FCPATH . 'assets/lampiran/' . $cleanName);
             }
         }
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     public function KegiatanDelete()
@@ -143,7 +145,8 @@ class Manajemen_approval extends AppController
         }
         $data['error']  = $this->M_Manajemen_approval->KegiatanDelete();
         $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     public function KegiatanSendApproval()
@@ -152,7 +155,8 @@ class Manajemen_approval extends AppController
         $this->Auth->cekMenu($this->menu_kode, 'u');
         $this->M_Manajemen_approval->KegiatanSendApproval();
         $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     public function GetFormInfoKegiatan()
@@ -200,7 +204,8 @@ class Manajemen_approval extends AppController
         $sql            = $this->M_Manajemen_approval->KegiatanApprovalGetListSql();
         $output         = model(M_DataTable::class)->dtTableGetList($sql);
         $output['data'] = $this->M_Manajemen_approval->KegiatanApprovalDecorateRows($output['data']);
-        echo json_encode($output);
+
+        return $this->jsonResponse($output);
     }
 
     public function GetApprovalFormInfoKegiatan()
@@ -242,7 +247,8 @@ class Manajemen_approval extends AppController
         }
         $data['error']  = $this->M_Manajemen_approval->ApprovalFormInfoKegiatanSubmit();
         $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     // Hentikan Proses (batalkan) -- hanya PJ-Kegiatan / SuperAdmin.
@@ -252,7 +258,8 @@ class Manajemen_approval extends AppController
         $this->Auth->cekMenu($this->menu_kode, 'u');
         $data['error']  = $this->M_Manajemen_approval->KegiatanTerminate();
         $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     // Kirim ulang setelah revisi -- oleh petugas tujuan (PJ / Staff PPK / SPM).
@@ -262,7 +269,8 @@ class Manajemen_approval extends AppController
         $this->Auth->cekMenu($this->menu_kode, 'u');
         $data['error']  = $this->M_Manajemen_approval->KegiatanRevisiKirimUlang();
         $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     // -----------------------------------------------------
@@ -288,7 +296,8 @@ class Manajemen_approval extends AppController
         $this->menu_kode = '3200';
         $this->Auth->cekMenu($this->menu_kode, 'r');
         $data['data'] = $this->M_Manajemen_approval->ReportGetList();
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     // -----------------------------------------------------
@@ -300,9 +309,7 @@ class Manajemen_approval extends AppController
         }
         $KegiatanID = (int) $this->request->getPost('KegiatanID');
         if ($KegiatanID <= 0) {
-            echo json_encode(['status' => 0, 'message' => 'ID kegiatan tidak valid.']);
-
-            return;
+            return $this->jsonResponse(['status' => 0, 'message' => 'ID kegiatan tidak valid.']);
         }
         $res   = $this->M_Manajemen_approval->EarlyWarningKirim('manual', $KegiatanID);
         $gagal = isset($res['gagal']) ? (int) $res['gagal'] : 0;
@@ -317,7 +324,7 @@ class Manajemen_approval extends AppController
         } else {
             $message = 'Tidak ada nomor tujuan, atau pengajuan ini tidak sedang terhambat.';
         }
-        echo json_encode([
+        return $this->jsonResponse([
             'status'  => $ok ? 1 : 0,
             'message' => $message,
         ] + $res);

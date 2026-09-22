@@ -45,4 +45,18 @@ abstract class BaseController extends Controller
         $this->session = service('session');
         $this->db      = db_connect();
     }
+
+    /**
+     * Respons JSON seragam. HARUS di-`return` oleh pemanggil (bukan cuma
+     * dipanggil lalu `return;` kosong) -- CodeIgniter::gatherOutput() cuma
+     * memakai body dari NILAI BALIK method controller, lihat catatan
+     * panjang di show_error() (app/Common.php).
+     */
+    protected function jsonResponse($data, int $statusCode = 200): ResponseInterface
+    {
+        return $this->response
+            ->setStatusCode($statusCode)
+            ->setContentType('application/json')
+            ->setBody(json_encode($data, JSON_UNESCAPED_UNICODE));
+    }
 }

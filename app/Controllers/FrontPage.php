@@ -55,7 +55,7 @@ class FrontPage extends BaseController
                 'status_raw'  => $r['KegiatanStatus'],
             ];
         }
-        return $this->response->setContentType('application/json')->setBody(json_encode(['data' => $out]));
+        return $this->jsonResponse(['data' => $out]);
     }
 
     public function ListStatus()

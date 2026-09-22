@@ -242,17 +242,14 @@ class Dokumen extends AppController
         $rangkap    = $this->_rangkapPost();
         $payload    = json_decode($this->request->getPost('payload'), true);
         if (! $this->M_Dokumen->template($kode) || ! is_array($payload)) {
-            echo json_encode(['ok' => false, 'msg' => 'Data tidak valid.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Data tidak valid.']);
         }
         if (! $this->_akses($kode, $KegiatanID)['isi']) {
-            echo json_encode(['ok' => false, 'msg' => 'Bukan bagian Anda / belum waktunya mengisi dokumen ini.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Bukan bagian Anda / belum waktunya mengisi dokumen ini.']);
         }
         $res = $this->M_Dokumen->saveDokumen($kode, $KegiatanID, $rangkap, $payload, $this->data['UserID']);
-        echo json_encode($res);
+
+        return $this->jsonResponse($res);
     }
 
     public function cetak($kode = '', $KegiatanID = 0)
@@ -385,7 +382,7 @@ class Dokumen extends AppController
         $order      = (array) $this->request->getPost('order');
         $res        = $this->M_Dokumen->saveDokumenUrutan($KegiatanID, $order);
 
-        return $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
+        return $this->jsonResponse($res);
     }
 
     /** Unduh beberapa dokumen sebagai SATU PDF. ?d[]=kode:rangkap & ttd=0|1 */
@@ -512,7 +509,8 @@ class Dokumen extends AppController
         $kurang = ($on && $pos !== 'SuperAdmin')
             ? $this->M_Dokumen->ttdKurangUntukPosisi((int) $KegiatanID, $pos)
             : [];
-        echo json_encode(['on' => $on, 'posisi' => $pos, 'kurang' => $kurang, 'lengkap' => empty($kurang)]);
+
+        return $this->jsonResponse(['on' => $on, 'posisi' => $pos, 'kurang' => $kurang, 'lengkap' => empty($kurang)]);
     }
 
     /* ---------------- CAP DINAS (scan, dikelola admin) ---------------- */
@@ -522,32 +520,22 @@ class Dokumen extends AppController
     {
         $this->Auth->cekMenu('2300', 'u');
         if (empty($_FILES['cap']['name']) || (int) $_FILES['cap']['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['ok' => false, 'msg' => 'Tidak ada berkas.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Tidak ada berkas.']);
         }
         $tmp = $_FILES['cap']['tmp_name'];
         if (! is_uploaded_file($tmp)) {
-            echo json_encode(['ok' => false, 'msg' => 'Berkas tidak sah.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Berkas tidak sah.']);
         }
         if (filesize($tmp) > 600 * 1024) {
-            echo json_encode(['ok' => false, 'msg' => 'Maksimal 600 KB.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Maksimal 600 KB.']);
         }
         $head = @file_get_contents($tmp, false, null, 0, 8);
         if ($head !== "\x89PNG\r\n\x1a\n") {
-            echo json_encode(['ok' => false, 'msg' => 'Harus file PNG (disarankan transparan).']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Harus file PNG (disarankan transparan).']);
         }
         $info = @getimagesize($tmp);
         if (! $info || $info[0] > 1200 || $info[1] > 1200) {
-            echo json_encode(['ok' => false, 'msg' => 'Dimensi maksimal 1200x1200 px.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Dimensi maksimal 1200x1200 px.']);
         }
         $dir = FCPATH . 'assets/uploads/';
         if (! is_dir($dir)) {
@@ -555,12 +543,11 @@ class Dokumen extends AppController
         }
         $rel = 'assets/uploads/cap_dinas.png';
         if (! move_uploaded_file($tmp, FCPATH . $rel)) {
-            echo json_encode(['ok' => false, 'msg' => 'Gagal menyimpan berkas.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Gagal menyimpan berkas.']);
         }
         $this->M_Dokumen->capSet($rel, $this->data['UserID']);
-        echo json_encode(['ok' => true, 'msg' => 'Cap dinas tersimpan.', 'src' => base_url($rel) . '?v=' . time()]);
+
+        return $this->jsonResponse(['ok' => true, 'msg' => 'Cap dinas tersimpan.', 'src' => base_url($rel) . '?v=' . time()]);
     }
 
     /** Aktif/nonaktifkan gate "Setuju PPK". */
@@ -573,7 +560,8 @@ class Dokumen extends AppController
         } else {
             $this->db->table('tb_vrbl')->insert(['VrblName' => 'dok_gate_ppk', 'VrblValue' => $on]);
         }
-        echo json_encode(['ok' => true, 'on' => $on === '1']);
+
+        return $this->jsonResponse(['ok' => true, 'on' => $on === '1']);
     }
 
     public function capHapus()
@@ -581,7 +569,8 @@ class Dokumen extends AppController
         $this->Auth->cekMenu('2300', 'u');
         $this->M_Dokumen->capSet('', $this->data['UserID']);
         @unlink(FCPATH . 'assets/uploads/cap_dinas.png');
-        echo json_encode(['ok' => true, 'msg' => 'Cap dinas dihapus.']);
+
+        return $this->jsonResponse(['ok' => true, 'msg' => 'Cap dinas dihapus.']);
     }
 
     /* ---------------- TANDA TANGAN (tangkap-langsung) ---------------- */
@@ -628,33 +617,23 @@ class Dokumen extends AppController
         $slot       = preg_replace('/[^a-z0-9_]/', '', strtolower((string) $this->request->getPost('slot')));
         $tpl        = $this->M_Dokumen->template($kode);
         if (! $tpl || ! in_array($slot, (array) $tpl['slot_ttd'], true)) {
-            echo json_encode(['ok' => false, 'msg' => 'Slot / dokumen tidak valid.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Slot / dokumen tidak valid.']);
         }
         if (! $this->_akses($kode, $KegiatanID)['lihat']) {
-            echo json_encode(['ok' => false, 'msg' => 'Dokumen ini belum bisa diakses.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Dokumen ini belum bisa diakses.']);
         }
         $gate = $this->_ttdBoleh($KegiatanID, $slot);
         if (! $gate['ok']) {
-            echo json_encode(['ok' => false, 'msg' => $gate['msg']]);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => $gate['msg']]);
         }
 
         $dataUrl = (string) $this->request->getPost('image');
         if (! preg_match('#^data:image/png;base64,#', $dataUrl)) {
-            echo json_encode(['ok' => false, 'msg' => 'Format gambar tidak valid (harus PNG).']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Format gambar tidak valid (harus PNG).']);
         }
         $img = base64_decode(substr($dataUrl, strlen('data:image/png;base64,')), true);
         if ($img === false) {
-            echo json_encode(['ok' => false, 'msg' => 'Gambar rusak.']);
-
-            return;
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Gambar rusak.']);
         }
 
         $res = $this->M_Dokumen->ttdSimpan($KegiatanID, $kode, $rangkap, $slot, $img, [
@@ -663,7 +642,8 @@ class Dokumen extends AppController
             'role'    => isset($this->data['UserPosition']) ? $this->data['UserPosition'] : $this->session->get('UserPosition'),
             'ip'      => $this->request->getIPAddress(),
         ]);
-        echo json_encode($res);
+
+        return $this->jsonResponse($res);
     }
 
     /**
@@ -733,7 +713,7 @@ class Dokumen extends AppController
         }
         unset($r);
 
-        return $this->response->setContentType('application/json')->setBody(json_encode($list, JSON_UNESCAPED_UNICODE));
+        return $this->jsonResponse($list);
     }
 
     /** POST: upload PDF eksternal. */
@@ -747,25 +727,21 @@ class Dokumen extends AppController
 
         // Validasi hak upload
         if (! $mDokUpload->bolehUpload($tipe, $pos)) {
-            return $this->response->setContentType('application/json')
-                ->setBody(json_encode(['ok' => false, 'msg' => 'Anda tidak berwenang upload tipe dokumen ini.']));
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Anda tidak berwenang upload tipe dokumen ini.']);
         }
 
         // Validasi file
         if (empty($_FILES['file']['tmp_name'])) {
-            return $this->response->setContentType('application/json')
-                ->setBody(json_encode(['ok' => false, 'msg' => 'Tidak ada file yang diunggah.']));
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Tidak ada file yang diunggah.']);
         }
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime  = finfo_file($finfo, $_FILES['file']['tmp_name']);
         finfo_close($finfo);
         if ($mime !== 'application/pdf') {
-            return $this->response->setContentType('application/json')
-                ->setBody(json_encode(['ok' => false, 'msg' => 'Hanya file PDF yang diizinkan.']));
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Hanya file PDF yang diizinkan.']);
         }
         if ($_FILES['file']['size'] > 10 * 1024 * 1024) {
-            return $this->response->setContentType('application/json')
-                ->setBody(json_encode(['ok' => false, 'msg' => 'Ukuran file maksimal 10 MB.']));
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Ukuran file maksimal 10 MB.']);
         }
 
         $dir = FCPATH . 'assets/uploads/dok/' . $KegiatanID . '/';
@@ -776,13 +752,12 @@ class Dokumen extends AppController
         $safe  = preg_replace('/[^a-zA-Z0-9_-]/', '_', pathinfo($_FILES['file']['name'], PATHINFO_FILENAME));
         $fname = $tipe . '_' . $safe . '_' . time() . '.' . $ext;
         if (! move_uploaded_file($_FILES['file']['tmp_name'], $dir . $fname)) {
-            return $this->response->setContentType('application/json')
-                ->setBody(json_encode(['ok' => false, 'msg' => 'Gagal memindahkan file.']));
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Gagal memindahkan file.']);
         }
         $rel = 'assets/uploads/dok/' . $KegiatanID . '/' . $fname;
         $res = $mDokUpload->simpanUpload($KegiatanID, $tipe, $rel, $_FILES['file']['name'], $_FILES['file']['size'], $userID);
 
-        return $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
+        return $this->jsonResponse($res);
     }
 
     /** POST: hapus upload (hanya uploader / SuperAdmin, sebelum ada TTD). */
@@ -794,16 +769,14 @@ class Dokumen extends AppController
         $pos        = $this->session->get('UserPosition');
         $row        = $mDokUpload->getUpload($UploadID);
         if (! $row) {
-            return $this->response->setContentType('application/json')
-                ->setBody(json_encode(['ok' => false, 'msg' => 'File tidak ditemukan.']));
+            return $this->jsonResponse(['ok' => false, 'msg' => 'File tidak ditemukan.']);
         }
         if ($pos !== 'SuperAdmin' && (int) $row['UploadedBy'] !== $userID) {
-            return $this->response->setContentType('application/json')
-                ->setBody(json_encode(['ok' => false, 'msg' => 'Anda tidak berwenang menghapus file ini.']));
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Anda tidak berwenang menghapus file ini.']);
         }
         $res = $mDokUpload->hapusUpload($UploadID, $userID);
 
-        return $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
+        return $this->jsonResponse($res);
     }
 
     /* ================================================================
@@ -853,8 +826,7 @@ class Dokumen extends AppController
         // server -- kalau tidak, siapa pun yang login bisa POST langsung ke
         // sini dan "menandatangani" slot PPK/PPSPM memakai akunnya sendiri.
         if (! $this->_uploadSlotBoleh($slotChk, $pos)) {
-            return $this->response->setContentType('application/json')
-                ->setBody(json_encode(['ok' => false, 'msg' => 'Anda tidak berwenang menandatangani slot ini.']));
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Anda tidak berwenang menandatangani slot ini.']);
         }
 
         // Decode image base64
@@ -864,8 +836,7 @@ class Dokumen extends AppController
         }
         $img = base64_decode($imgB64);
         if ($img === false) {
-            return $this->response->setContentType('application/json')
-                ->setBody(json_encode(['ok' => false, 'msg' => 'Gambar tidak valid.']));
+            return $this->jsonResponse(['ok' => false, 'msg' => 'Gambar tidak valid.']);
         }
 
         $pos_arr = [
@@ -884,7 +855,7 @@ class Dokumen extends AppController
 
         $res = $mDokUpload->simpanTtd($UploadID, $slot, $pos_arr, $img, $signer);
 
-        return $this->response->setContentType('application/json')->setBody(json_encode($res, JSON_UNESCAPED_UNICODE));
+        return $this->jsonResponse($res);
     }
 
     /** GET: unduh PDF yang sudah di-embed TTD (FPDI overlay). */

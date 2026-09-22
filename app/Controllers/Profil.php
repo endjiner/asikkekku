@@ -24,8 +24,9 @@ class Profil extends AppController
 
     public function PasswordModify()
     {
-        $data['error']  = $this->M_Profil->PasswordModify();
-        $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+        return $this->jsonResponse([
+            'error'  => $this->M_Profil->PasswordModify(),
+            'status' => $this->db->transStatus(),
+        ]);
     }
 }

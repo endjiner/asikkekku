@@ -55,7 +55,8 @@ class Manajemen_app extends AppController
         $sql                = $this->M_Manajemen_app->userGroupGetListSql();
         $output             = model(M_DataTable::class)->dtTableGetList($sql);
         $output['data']     = $this->M_Manajemen_app->userGroupDecorateRows($output['data']);
-        echo json_encode($output);
+
+        return $this->jsonResponse($output);
     }
 
     public function userGroupGetData()
@@ -64,16 +65,19 @@ class Manajemen_app extends AppController
         $this->Auth->cekMenu($this->menu_kode, 'r');
         $UserGroupID = legacy_get_post('UserGroupID');
         $data        = $this->M_Manajemen_app->userGroupGetData($UserGroupID);
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     public function userGroupModify()
     {
         $this->menu_kode = '2100';
         $this->Auth->cekMenu($this->menu_kode, 'c');
-        $data['error']  = $this->M_Manajemen_app->userGroupModify();
-        $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse([
+            'error'  => $this->M_Manajemen_app->userGroupModify(),
+            'status' => $this->db->transStatus(),
+        ]);
     }
 
     public function userGroupDelete()
@@ -81,8 +85,8 @@ class Manajemen_app extends AppController
         $this->menu_kode = '2100';
         $this->Auth->cekMenu($this->menu_kode, 'd');
         $this->M_Manajemen_app->userGroupDelete();
-        $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse(['status' => $this->db->transStatus()]);
     }
 
     // -----------------------------------------------------
@@ -106,7 +110,8 @@ class Manajemen_app extends AppController
         $sql            = $this->M_Manajemen_app->userGetListSql();
         $output         = model(M_DataTable::class)->dtTableGetList($sql);
         $output['data'] = $this->M_Manajemen_app->userDecorateRows($output['data']);
-        echo json_encode($output);
+
+        return $this->jsonResponse($output);
     }
 
     public function userGetData()
@@ -115,16 +120,19 @@ class Manajemen_app extends AppController
         $this->Auth->cekMenu($this->menu_kode, 'r');
         $UserID = legacy_get_post('UserID');
         $data   = $this->M_Manajemen_app->userGetData($UserID);
-        echo json_encode($data);
+
+        return $this->jsonResponse($data);
     }
 
     public function userModify()
     {
         $this->menu_kode = '2200';
         $this->Auth->cekMenu($this->menu_kode, 'c');
-        $data['error']  = $this->M_Manajemen_app->userModify();
-        $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse([
+            'error'  => $this->M_Manajemen_app->userModify(),
+            'status' => $this->db->transStatus(),
+        ]);
     }
 
     public function userDelete()
@@ -132,8 +140,8 @@ class Manajemen_app extends AppController
         $this->menu_kode = '2200';
         $this->Auth->cekMenu($this->menu_kode, 'd');
         $this->M_Manajemen_app->userDelete();
-        $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse(['status' => $this->db->transStatus()]);
     }
 
     // -----------------------------------------------------
@@ -178,9 +186,7 @@ class Manajemen_app extends AppController
         // Dulu redirect+refresh (tanpa umpan balik). Sekarang AJAX -> JSON supaya
         // bisa munculkan pop-up "tersimpan" lalu reload dari sisi klien.
         if ($this->request->isAJAX()) {
-            echo json_encode(['ok' => true, 'msg' => 'Konfigurasi aplikasi tersimpan.']);
-
-            return;
+            return $this->jsonResponse(['ok' => true, 'msg' => 'Konfigurasi aplikasi tersimpan.']);
         }
         legacy_redirect(base_url('manajemen_app/konfigurasi_app'));
     }
@@ -189,8 +195,10 @@ class Manajemen_app extends AppController
     {
         $this->menu_kode = '2300';
         $this->Auth->cekMenu($this->menu_kode, 'c');
-        $data['error']  = $this->M_Manajemen_app->KonfigurasiAppFlowOrder();
-        $data['status'] = $this->db->transStatus();
-        echo json_encode($data);
+
+        return $this->jsonResponse([
+            'error'  => $this->M_Manajemen_app->KonfigurasiAppFlowOrder(),
+            'status' => $this->db->transStatus(),
+        ]);
     }
 }
