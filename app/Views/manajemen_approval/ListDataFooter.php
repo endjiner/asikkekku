@@ -30,6 +30,8 @@
     // scrollY tetap aktif di semua ukuran -> header tak tenggelam & sejajar.
     var dtNarrow = window.matchMedia('(max-width: 767.98px)').matches;
 
+    var highlightOffset = <?= (int) ($highlightOffset ?? 0) ?>;
+
     var table_data = $("#table-data").DataTable({
       "processing": true,
       "serverSide": true,
@@ -38,7 +40,26 @@
       "scrollX": dtNarrow,
       "scrollY": "calc(100vh - 360px)",
       "scrollCollapse": true,
+      "displayStart": highlightOffset,
       "order": [[0, 'desc']],
+      "pageLength": 10,
+      "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Semua"]],
+      "language": {
+        "processing": "Memuat data...",
+        "search": "Cari:",
+        "searchPlaceholder": "No. surat / judul / pelaksana...",
+        "lengthMenu": "Tampilkan _MENU_ baris",
+        "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ pengajuan",
+        "infoEmpty": "Tidak ada data pengajuan",
+        "infoFiltered": "(disaring dari _MAX_ total)",
+        "zeroRecords": "Tidak ada data yang cocok dengan pencarian",
+        "paginate": {
+          "first": "Awal",
+          "last": "Akhir",
+          "next": "Selanjutnya",
+          "previous": "Sebelumnya"
+        }
+      },
       "ajax": {
         url: '<?= base_url() ?>manajemen_approval/KegiatanGetList',
         method: "POST",
@@ -71,9 +92,28 @@
                      .click(function() {
                         input.val('');
                         self.search('').draw();
-                     })
+                     });
         $('.dataTables_filter').append($searchButton, $clearButton);
       },
+      drawCallback: function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var highlightId = urlParams.get('highlight') || urlParams.get('id');
+        if (highlightId) {
+          var $row = $('#row-kegiatan-' + highlightId + ', tr[data-id="' + highlightId + '"], tr:has(button[data="' + highlightId + '"])');
+          if ($row.length) {
+            $row.addClass('row-highlight-pulse');
+            setTimeout(function() {
+              var scrollEl = $('.dataTables_scrollBody')[0];
+              if (scrollEl && $row[0]) {
+                var rowTop = $row[0].offsetTop;
+                scrollEl.scrollTop = Math.max(0, rowTop - 60);
+              } else if ($row[0]) {
+                $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 300);
+          }
+        }
+      }
     })
     $('input[name="KegiatanTanggal"]').daterangepicker({ 
       singleDatePicker: true, 

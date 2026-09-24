@@ -55,6 +55,8 @@ class M_Dashboard extends BaseModel
         $uid = (int) $this->UserID;
         $draft = (int) $this->db->query(
             "SELECT COUNT(*) c FROM tb_kegiatan WHERE KegiatanUserID = ? AND KegiatanStatus = 'editable' AND KegiatanDeletedAt IS NULL", [$uid])->getRow()->c;
+        $revisi = (int) $this->db->query(
+            "SELECT COUNT(*) c FROM tb_kegiatan WHERE KegiatanUserID = ? AND KegiatanStatus = 'Perlu Revisi' AND KegiatanDeletedAt IS NULL", [$uid])->getRow()->c;
         $onProgress = (int) $this->db->query(
             "SELECT COUNT(*) c FROM tb_kegiatan WHERE KegiatanUserID = ? AND KegiatanStatus = 'Approval OnProgress' AND KegiatanDeletedAt IS NULL", [$uid])->getRow()->c;
         $complete = (int) $this->db->query(
@@ -63,11 +65,164 @@ class M_Dashboard extends BaseModel
             "SELECT COUNT(*) c FROM tb_kegiatan WHERE KegiatanUserID = ? AND KegiatanDeletedAt IS NULL", [$uid])->getRow()->c;
 
         return [
-            'draft'       => $draft,
-            'on_progress' => $onProgress,
-            'complete'    => $complete,
-            'total'       => $total,
+            'draft'          => $draft,
+            'revisi'         => $revisi,
+            'perlu_tindakan' => $draft + $revisi,
+            'on_progress'    => $onProgress,
+            'complete'       => $complete,
+            'total'          => $total,
         ];
+    }
+
+    /**
+     * Khusus PJ-Kegiatan: Daftar seluruh pengajuan milik PJ yang aktif/terbaru,
+     * dilengkapi status terakhir dan posisi meja verifikasi secara real-time.
+     */
+    public function GetPjSubmissions($limit = 15, &$total = null)
+    {
+        $uid = (int) $this->UserID;
+
+        $rows = $this->db->query("
+            SELECT g.KegiatanID, g.KegiatanJudul, g.KegiatanNoSuratTugas, g.KegiatanStatus, 
+                   g.KegiatanStatusTerakhir, g.KegiatanKeteranganTerakhir, g.KegiatanNamaPelaksana,
+                   g.KegiatanTanggal, COALESCE(g.KegiatanJenisID, 1) AS KegiatanJenisID
+            FROM tb_kegiatan g
+            WHERE g.KegiatanUserID = ? AND g.KegiatanDeletedAt IS NULL
+            ORDER BY 
+                CASE 
+                    WHEN g.KegiatanStatus = 'Perlu Revisi' THEN 1
+                    WHEN g.KegiatanStatus = 'editable' THEN 2
+                    WHEN g.KegiatanStatus = 'Approval OnProgress' THEN 3
+                    WHEN g.KegiatanStatus = 'Approval Selesai' THEN 4
+                    ELSE 5
+                END ASC,
+                g.KegiatanID DESC
+        ", [$uid])->getResultArray();
+
+        $total = count($rows);
+        $slice = ($limit > 0) ? array_slice($rows, 0, $limit) : $rows;
+        if (empty($slice)) {
+            return [];
+        }
+
+        $onProgIds = [];
+        foreach ($slice as $r) {
+            if ($r['KegiatanStatus'] === 'Approval OnProgress') {
+                $onProgIds[] = (int) $r['KegiatanID'];
+            }
+        }
+        $slaMap = ! empty($onProgIds) ? $this->manajemenApproval()->SlaEvalBatch($onProgIds) : [];
+
+        $flowRows = $this->db->query("
+            SELECT FlowOrder, FlowCode, FlowPosition, FlowNote, JenisID
+            FROM tb_approval_flow
+            WHERE FlowOrder > 0
+            ORDER BY FlowOrder ASC
+        ")->getResultArray();
+
+        $flowByJenis = [];
+        foreach ($flowRows as $f) {
+            $j = (int) $f['JenisID'];
+            $flowByJenis[$j][] = $f;
+        }
+
+        $shortPos = function ($pos) {
+            $m = [
+                'PJ-Kegiatan' => 'Pengusulan (PJ)',
+                'PPK-Staff'   => 'Staf PPK',
+                'SPM'         => 'SPM',
+                'Verifikator' => 'Verifikator',
+                'PPK'         => 'PPK',
+                'PPSPM'       => 'PPSPM',
+            ];
+            return isset($m[$pos]) ? $m[$pos] : $pos;
+        };
+
+        $items = [];
+        foreach ($slice as $r) {
+            $kid        = (int) $r['KegiatanID'];
+            $st         = $r['KegiatanStatus'];
+            $jenis      = (int) $r['KegiatanJenisID'];
+            $stages     = isset($flowByJenis[$jenis]) ? $flowByJenis[$jenis] : (isset($flowByJenis[1]) ? $flowByJenis[1] : []);
+            $maxStages  = count($stages);
+
+            $currentStageOrder = 1;
+            $currentDeskName   = 'Pengusulan (PJ)';
+            $badgeType         = 'draft';
+            $statusText        = 'Draf (Belum Dikirim)';
+            $cta               = 'Lengkapi & Kirim';
+            $url               = base_url('manajemen_approval/list_data');
+            $slaLevel          = null;
+            $elapsedHk         = 0;
+
+            if ($st === 'editable') {
+                $currentStageOrder = 1;
+                $currentDeskName   = 'Pengusulan (PJ)';
+                $badgeType         = 'draft';
+                $statusText        = 'Draf Belum Diajukan';
+                $cta               = 'Lengkapi & Kirim';
+            } elseif ($st === 'Perlu Revisi') {
+                $currentStageOrder = 1;
+                $currentDeskName   = 'Perlu Revisi oleh PJ';
+                $badgeType         = 'revisi';
+                $statusText        = 'Perlu Revisi';
+                $cta               = 'Perbaiki Data';
+            } elseif ($st === 'Approval OnProgress') {
+                $badgeType = 'progress';
+                if (isset($slaMap[$kid])) {
+                    $eval            = $slaMap[$kid];
+                    $currentDeskName = $eval['stage_position'] ? $shortPos($eval['stage_position']) : 'Petugas Verifikasi';
+                    $slaLevel        = $eval['level'];
+                    $elapsedHk       = (int) $eval['stage_elapsed_hk'];
+                    $statusText      = 'Sedang di Meja ' . $currentDeskName;
+                } else {
+                    $currentDeskName = 'Verifikasi';
+                    $statusText      = 'Sedang Diproses';
+                }
+
+                // Tentukan step order
+                foreach ($stages as $stg) {
+                    if ($stg['FlowPosition'] === $currentDeskName || $shortPos($stg['FlowPosition']) === $currentDeskName || $stg['FlowCode'] === $r['KegiatanStatusTerakhir']) {
+                        $currentStageOrder = (int) $stg['FlowOrder'];
+                        break;
+                    }
+                }
+                $cta = 'Pantau Progres';
+            } elseif ($st === 'Approval Selesai') {
+                $currentStageOrder = $maxStages > 0 ? $maxStages : 7;
+                $currentDeskName   = 'Penerbitan SPP / SP2D Selesai';
+                $badgeType         = 'success';
+                $statusText        = 'Selesai Dicairkan';
+                $cta               = 'Lihat Berkas';
+            } elseif ($st === 'Dibatalkan') {
+                $badgeType         = 'danger';
+                $currentDeskName   = 'Pengajuan Dibatalkan';
+                $statusText        = 'Dibatalkan';
+                $cta               = 'Lihat Info';
+            }
+
+            $items[] = [
+                'KegiatanID'          => $kid,
+                'judul'               => $r['KegiatanJudul'],
+                'no_surat'            => $r['KegiatanNoSuratTugas'],
+                'pelaksana'           => $r['KegiatanNamaPelaksana'],
+                'status'              => $st,
+                'status_text'         => $statusText,
+                'badge_type'          => $badgeType,
+                'current_desk'        => $currentDeskName,
+                'current_stage_order' => $currentStageOrder,
+                'max_stages'          => $maxStages > 0 ? $maxStages : 7,
+                'catatan_terakhir'    => $r['KegiatanKeteranganTerakhir'],
+                'updated_at'          => $r['KegiatanTanggal'],
+                'sla_level'           => $slaLevel,
+                'elapsed_hk'          => $elapsedHk,
+                'cta'                 => $cta,
+                'url'                 => $url,
+                'stages'              => $stages,
+            ];
+        }
+
+        return $items;
     }
 
     /**
@@ -183,7 +338,7 @@ class M_Dashboard extends BaseModel
         return [
             'items'     => array_slice($warn, 0, $limit),
             'summary'   => $summary,
-            'can_nudge' => ($isAdmin || in_array($pos, $petugasAlur, true)),
+            'can_nudge' => ($isAdmin || in_array($pos, $petugasAlur, true) || $pos === 'PJ-Kegiatan'),
         ];
     }
 

@@ -20,6 +20,24 @@
       "scrollX": dtNarrow,
       "scrollY": "calc(100vh - 360px)",
       "scrollCollapse": true,
+      "pageLength": 10,
+      "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Semua"]],
+      "language": {
+        "processing": "Memuat data...",
+        "search": "Cari:",
+        "searchPlaceholder": "Nama / username / jabatan...",
+        "lengthMenu": "Tampilkan _MENU_ baris",
+        "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ pengguna",
+        "infoEmpty": "Tidak ada data pengguna",
+        "infoFiltered": "(disaring dari _MAX_ total)",
+        "zeroRecords": "Tidak ada data yang cocok dengan pencarian",
+        "paginate": {
+          "first": "Awal",
+          "last": "Akhir",
+          "next": "Selanjutnya",
+          "previous": "Sebelumnya"
+        }
+      },
       "ajax": {
         url: '<?= base_url() ?>manajemen_app/UserGetList',
         method: "POST",

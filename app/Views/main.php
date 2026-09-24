@@ -10,33 +10,36 @@
 <body class="hold-transition app-topnav page-<?= isset($menu_detail['MenuKode']) ? preg_replace('/[^0-9a-zA-Z]/', '', $menu_detail['MenuKode']) : 'x' ?>">
   <?php echo ui_sprite_inline(); ?>
 
-  <header class="app-topbar">
-    <a href="<?= base_url('dashboard') ?>" class="app-brand">
-      <img src="<?= base_url($AppConfig['logo_small'] ?: 'assets/images/logo_baru.png') ?>" alt="Logo">
-      <span class="app-brand-txt">
-        <b><?php echo html_escape($AppConfig['app_title']) ?></b>
-        <small>BBPOM di Pangkal Pinang</small>
-      </span>
-    </a>
-
-    <button type="button" class="app-navtoggle" aria-label="Menu" aria-expanded="false">
-      <?php echo svgico('menu', 20) ?>
-    </button>
-
-    <nav class="app-nav">
-      <?= view('layouts/topmenu', get_defined_vars()) ?>
-    </nav>
-
-    <div class="app-user">
-      <button type="button" class="app-user-btn" data-toggle="modal" data-target="#modal-password" title="Ganti kata sandi">
-        <?php echo illus('profile', 20); ?>
-        <span class="app-user-name"><?= html_escape($UserFullName) ?><i><?= html_escape($UserPosition) ?></i></span>
-      </button>
-      <a class="app-logout" id="btnLogout" href="<?= base_url() ?>MainPage/logout" title="Keluar">
-        <?php echo svgico('logout', 18) ?><span>Keluar</span>
+  <div class="app-topbar-wrapper">
+    <header class="app-topbar">
+      <a href="<?= base_url('dashboard') ?>" class="app-brand">
+        <img src="<?= base_url($AppConfig['logo_small'] ?: 'assets/images/logo_baru.png') ?>" alt="Logo">
+        <span class="app-brand-txt">
+          <b><?php echo html_escape($AppConfig['app_title']) ?></b>
+          <small>BBPOM di Pangkal Pinang</small>
+        </span>
       </a>
-    </div>
-  </header>
+
+      <button type="button" class="app-navtoggle" aria-label="Menu" aria-expanded="false">
+        <?php echo svgico('menu', 20) ?>
+      </button>
+
+      <nav class="app-nav">
+        <?= view('layouts/topmenu', get_defined_vars()) ?>
+      </nav>
+
+      <div class="app-user">
+        <button type="button" class="app-user-btn" data-toggle="modal" data-target="#modal-password" title="Ganti kata sandi / Profil">
+          <span class="app-avatar-initial"><?= strtoupper(substr($UserFullName ?: ($UserPosition ?: 'U'), 0, 1)) ?></span>
+          <span class="app-user-name"><?= html_escape($UserFullName) ?><i><?= html_escape($UserPosition) ?></i></span>
+          <span class="app-user-caret">&#9662;</span>
+        </button>
+        <a class="app-logout" id="btnLogout" href="<?= base_url() ?>MainPage/logout" title="Keluar">
+          <?php echo svgico('logout', 16) ?><span>Keluar</span>
+        </a>
+      </div>
+    </header>
+  </div>
 
   <main class="app-main">
     <?php
@@ -55,10 +58,8 @@
   </main>
 
   <div class="app-fabs">
-    <?php if (!empty($AppConfig['link_panduan'])): ?>
-      <a class="app-fab app-fab-help" href="<?= html_escape($AppConfig['link_panduan']) ?>" target="_blank" rel="noopener" title="Buku panduan" aria-label="Buku panduan"><?php echo svgico('guide', 18) ?></a>
-    <?php endif ?>
-    <button type="button" class="app-fab app-fab-top" aria-label="Kembali ke atas"><?php echo svgico('arrow-up', 18) ?></button>
+    <button type="button" class="app-fab app-fab-top" title="Scroll ke atas" aria-label="Scroll ke atas"><?php echo svgico('arrow-up', 18) ?></button>
+    <button type="button" class="app-fab app-fab-bottom" title="Scroll ke bawah" aria-label="Scroll ke bawah"><?php echo svgico('arrow-down', 18) ?></button>
   </div>
 </body>
 
@@ -172,11 +173,34 @@
       }
     });
     var fabTop = document.querySelector('.app-fab-top');
+    var fabBottom = document.querySelector('.app-fab-bottom');
+    var updateFabs = function () {
+      var scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      var docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight);
+      var winHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      var maxScroll = docHeight - winHeight;
+
+      if (fabTop) {
+        fabTop.classList.toggle('show', scrollY > 150);
+      }
+      if (fabBottom) {
+        fabBottom.classList.toggle('show', maxScroll > 250 && (maxScroll - scrollY) > 150);
+      }
+    };
+    window.addEventListener('scroll', updateFabs, { passive: true });
+    window.addEventListener('resize', updateFabs, { passive: true });
+    setTimeout(updateFabs, 350);
+
     if (fabTop) {
-      var onScroll = function () { fabTop.classList.toggle('show', window.scrollY > 320); };
-      window.addEventListener('scroll', onScroll, { passive: true });
-      onScroll();
-      fabTop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      fabTop.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+    if (fabBottom) {
+      fabBottom.addEventListener('click', function () {
+        var docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+        window.scrollTo({ top: docHeight, behavior: 'smooth' });
+      });
     }
   })();
 

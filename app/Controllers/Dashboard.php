@@ -36,6 +36,8 @@ class Dashboard extends AppController
         $this->data['action_items_total'] = $action_total;
         $this->data['early_warnings']     = $this->M_Dashboard->GetEarlyWarnings();
         $this->data['pj_summary']         = $this->M_Dashboard->GetPjSummary();
+        $this->data['pj_submissions']       = $this->M_Dashboard->GetPjSubmissions(0, $pj_sub_total);
+        $this->data['pj_submissions_total'] = $pj_sub_total;
         $this->data['pipeline']  = $this->M_Manajemen_approval->PipelineByStage(1);
         $this->data['kpi_bulan'] = $this->M_Manajemen_approval->MonthlyKpi(1);
         $this->data['body']      = 'dashboard/index';

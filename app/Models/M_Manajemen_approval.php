@@ -168,6 +168,8 @@ class M_Manajemen_approval extends BaseModel
 
         $result = [];
         foreach ($rows as $value) {
+            $value['DT_RowId'] = 'row-kegiatan-' . $value['KegiatanID'];
+            $value['DT_RowAttr'] = ['data-id' => $value['KegiatanID']];
             $action = '';
             $action .= ('<button type="button" class="btn btn-info btn-sm mr-1 KegiatanInfo" title="Info Detail" data-tooltip="true"
                         data-toggle="modal" data-target="#modal-xl" data="' . $value['KegiatanID'] . '" aria-label="Lihat info detail">

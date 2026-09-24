@@ -50,6 +50,24 @@ class Manajemen_approval extends AppController
         $currUid                   = (int) $this->session->get('UserID');
         $currUserRow               = $this->db->table('tb_users')->select('UserPhone')->getWhere(['UserID' => $currUid])->getRowArray();
         $this->data['UserPhone']   = $currUserRow['UserPhone'] ?? ($this->session->get('UserPhone') ?? '');
+
+        // Hitung offset halaman jika datang dengan parameter ?highlight={KegiatanID}
+        $highlightId = (int) $this->request->getGet('highlight');
+        $highlightOffset = 0;
+        if ($highlightId > 0) {
+            $userFilter = ($this->data['UserPosition'] === 'PJ-Kegiatan') ? ' AND KegiatanUserID = ' . $currUid : '';
+            $cntRow = $this->db->query("
+                SELECT COUNT(*) AS cnt 
+                FROM tb_kegiatan 
+                WHERE KegiatanDeletedAt IS NULL {$userFilter} AND KegiatanID > ?
+            ", [$highlightId])->getRowArray();
+            $rawIndex = isset($cntRow['cnt']) ? (int) $cntRow['cnt'] : 0;
+            // Selalu sejajarkan offset ke kelipatan ukuran halaman (10) agar paginasi aktif tepat
+            $highlightOffset = (int) (floor($rawIndex / 10) * 10);
+        }
+        $this->data['highlightId']     = $highlightId;
+        $this->data['highlightOffset'] = $highlightOffset;
+
         $this->data['body']        = 'manajemen_approval/ListData';
         $this->data['footer']      = 'manajemen_approval/ListDataFooter';
 
@@ -304,7 +322,7 @@ class Manajemen_approval extends AppController
     // Peringatan Dini 4HK -- pengingat WhatsApp manual (tombol di dashboard)
     public function EarlyWarningNudgeOne()
     {
-        if (! role_can('approval_inbox') && ! role_is_admin()) {
+        if (! role_can('approval_inbox') && ! role_is_admin() && $this->data['UserPosition'] !== 'PJ-Kegiatan') {
             $this->Auth->alert_error_response('Anda tidak berhak mengirim pengingat.');
         }
         $KegiatanID = (int) $this->request->getPost('KegiatanID');

@@ -16,7 +16,17 @@
 if (! function_exists('_ui_icon_name')) {
     function _ui_icon_name($name)
     {
-        return preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $name));
+        $n = preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $name));
+        $alias = array(
+            'file'   => 'file-alt',
+            'star'   => 'activity',
+            'doc'    => 'file-alt',
+            'stats'  => 'activity',
+            'check'  => 'done',
+            'upload' => 'attachment',
+            'chat'   => 'info',
+        );
+        return isset($alias[$n]) ? $alias[$n] : $n;
     }
 }
 
